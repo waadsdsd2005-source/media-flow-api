@@ -1,14 +1,14 @@
 import os
 import uuid
+import subprocess
 import telebot
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 
-# قراءة التوكن من إعدادات البيئة في Render
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(BOT_TOKEN) if BOT_TOKEN else None
 
-app = FastAPI(title="Media Flow API & Telegram Bot with Compression Stats")
+app = FastAPI(title="Media Flow Real Video Processing API")
 
 class ProcessRequest(BaseModel):
     user_id: str
@@ -18,80 +18,86 @@ class ProcessRequest(BaseModel):
 def get_file_size_mb(file_path):
     if not os.path.exists(file_path):
         return 0.0
-    size_bytes = os.path.getsize(file_path)
-    return round(size_bytes / (1024 * 1024), 2)
+    return round(os.path.getsize(file_path) / (1024 * 1024), 2)
 
-def background_media_processing(job_id: str, video_url: str, user_id: str, chat_id=None):
-    print(f"[*] Starting background task {job_id} for user {user_id}...")
-    
-    # محاكاة حجم فيديو أصلي (مثلاً 45.5 ميغابايت)
-    original_size = 45.5 
-    
-    # محاكاة عملية الضغط (سنستبدل هذه الخطوة لاحقاً بـ FFmpeg الحقيقي)
-    import time
-    time.sleep(3)
-    
-    # محاكاة الحجم بعد الضغط (مثلاً أصبح 12.3 ميغابايت)
-    compressed_size = 12.3 
-    saved_percentage = round(((original_size - compressed_size) / original_size) * 100, 1)
-    
-    print(f"[+] Task {job_id} completed! Original: {original_size}MB, Compressed: {compressed_size}MB")
-    
-    # إذا كان الطلب قادماً من تيليجرام، نرسل تقرير المقارنة للمستخدم
-    if bot and chat_id:
-        try:
+def compress_video_ffmpeg(input_path, output_path):
+    """ ضغط الفيديو بنسبة تتراوح بين 50% إلى 70% مع الحفاظ على الجودة """
+    command = [
+        "ffmpeg", "-y",
+        "-i", input_path,
+        "-vcodec", "libx264",
+        "-crf", "28",             # درجة الضغط (كلما زاد الرقم قل الحجم)
+        "-preset", "faster",
+        output_path
+    ]
+    subprocess.run(command, check=True)
+
+def process_and_reply(job_id: str, file_path: str, user_id: str, chat_id=None):
+    try:
+        original_size = get_file_size_mb(file_path)
+        output_path = f"compressed_{job_id}.mp4"
+
+        # الضغط الفعلي
+        compress_video_ffmpeg(file_path, output_path)
+        compressed_size = get_file_size_mb(output_path)
+        
+        saved_percentage = round(((original_size - compressed_size) / original_size) * 100, 1) if original_size > 0 else 0.0
+
+        if bot and chat_id:
             report_message = (
                 f"✅ **تم ضغط الفيديو بنجاح!**\n\n"
                 f"📦 الحجم قبل الضغط: `{original_size} MB`\n"
                 f"📉 الحجم بعد الضغط: `{compressed_size} MB`\n"
                 f"🔥 نسبة التوفير: `{saved_percentage}%`"
             )
-            bot.send_message(chat_id=chat_id, text=report_message, parse_mode="Markdown")
-        except Exception as e:
-            print(f"[-] Failed to send Telegram notification: {e}")
+            # إرسال الفيديو المضغوط الحقيقي للمستخدم
+            with open(output_path, 'rb') as video_file:
+                bot.send_video(chat_id=chat_id, video=video_file, caption=report_message, parse_mode="Markdown")
+
+        # تنظيف الملفات المؤقتة لتوفير مساحة السيرفر
+        if os.path.exists(file_path): os.remove(file_path)
+        if os.path.exists(output_path): os.remove(output_path)
+
+    except Exception as e:
+        print(f"[-] Processing Error: {e}")
+        if bot and chat_id:
+            bot.send_message(chat_id=chat_id, text=f"❌ حدث خطأ أثناء المعالجة: {str(e)}")
 
 @app.get("/")
 def home():
-    return {"status": "online", "message": "Media Flow API is running and ready for compression stats!"}
+    return {"status": "online", "message": "Real FFmpeg Compression Engine is Live!"}
 
-@app.post("/api/v1/process")
-def process_media(request: ProcessRequest, background_tasks: BackgroundTasks):
-    job_id = str(uuid.uuid4())
-    background_tasks.add_task(background_media_processing, job_id, request.video_url, request.user_id)
-    
-    return {
-        "success": True,
-        "job_id": job_id,
-        "status": "pending",
-        "message": "Task received. Processing and calculating size reduction."
-    }
-
-# إعداد تفاعل بوت تيليجرام لاستقبال الفيديوهات وعرض المقارنة
 if bot:
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
-        bot.reply_to(message, "أهلاً بك في بوت معالجة الميديا! أرسل لي أي فيديو وسأقوم بضغطه وحساب نسبة توفير المساحة لك.")
+        bot.reply_to(message, "أهلاً بك! أرسل لي أي فيديو (أقل من 20 ميغابايت) وسأقوم بضغطه حقيقياً وإرساله لك.")
 
     @bot.message_handler(content_types=['video', 'document'])
     def handle_video(message):
-        bot.reply_to(message, "⏳ جاري استلام الفيديو، حساب الحجم، وبدء الضغط...")
+        bot.reply_to(message, "⏳ جاري تنزيل الفيديو وبدء الضغط الحقيقي...")
         try:
             chat_id = message.chat.id
-            user_id = str(chat_id)
+            file_id = message.video.file_id if message.video else message.document.file_id
             
-            # استخراج رابط الملف من تيليجرام
-            file_info = bot.get_file(message.video.file_id if message.video else message.document.file_id)
-            file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_info.file_path}"
+            # تنزيل الفيديو إلى السيرفر
+            file_info = bot.get_file(file_id)
+            downloaded_file = bot.download_file(file_info.file_path)
             
             job_id = str(uuid.uuid4())
-            background_media_processing(job_id, file_url, user_id, chat_id=chat_id)
+            input_path = f"input_{job_id}.mp4"
             
+            with open(input_path, 'wb') as new_file:
+                new_file.write(downloaded_file)
+            
+            import threading
+            threading.Thread(target=process_and_reply, args=(job_id, input_path, str(chat_id), chat_id)).start()
+
         except Exception as e:
-            bot.reply_to(message, f"❌ حدث خطأ أثناء استقبال الملف: {str(e)}")
+            bot.reply_to(message, f"❌ حدث خطأ: {str(e)}")
 
     import threading
     def run_telegram_bot():
-        print("[*] Telegram Bot polling started with stats support...")
         bot.infinity_polling()
         
     threading.Thread(target=run_telegram_bot, daemon=True).start()
+    
