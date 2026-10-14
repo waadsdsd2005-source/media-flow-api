@@ -9,14 +9,12 @@ from fastapi.responses import HTMLResponse, FileResponse
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(BOT_TOKEN) if BOT_TOKEN else None
 
-app = FastAPI(title="Media Flow - Background Video Processing API")
+app = FastAPI(title="Media Flow - Optimized Video Processing API")
 
 UPLOAD_DIR = "uploads"
 PROCESSED_DIR = "processed"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
-
-jobs_status = {}
 
 def get_file_size_mb(file_path):
     if not os.path.exists(file_path):
@@ -47,7 +45,7 @@ async def process_web_video(background_tasks: BackgroundTasks, video: UploadFile
         return {
             "status": "queued",
             "job_id": job_id,
-            "message": "تم استلام الفيديو بنجاح"
+            "message": "تم استلام الفيديو وبدء المعالجة"
         }
 
     except Exception as e:
@@ -60,15 +58,15 @@ def download_file(file_name: str):
         return FileResponse(path=file_path, filename=file_name, media_type="video/mp4")
     raise HTTPException(status_code=404, detail="الملف غير موجود أو انتهت صلاحيته")
 
-# إعدادات بوت تيليجرام مع إرسال سبب الفشل بدقة
+# إعدادات بوت تيليجرام الذكي مع التقاط الأخطاء وأسباب التوقف
 if bot:
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
-        bot.reply_to(message, "أهلاً بك في Media Flow Bot! أرسل أي فيديو وسأعالج ضغطه لك في الخلفية مع إرسال التقرير أو سبب الخطأ إن حدث.")
+        bot.reply_to(message, "أهلاً بك في بوت Media Flow! أرسل الفيديو وسأقوم بمعالجته وإرسال التقرير أو سبب الخطأ فوراً إن حدث.")
 
     @bot.message_handler(content_types=['video', 'document'])
     def handle_video(message):
-        sent_msg = bot.reply_to(message, "⏳ تم استلام الفيديو، جاري العمل على ضغطه في الخلفية...")
+        sent_msg = bot.reply_to(message, "⏳ جارٍ معالجة وضغط الفيديو بأقصى سرعة...")
         try:
             chat_id = message.chat.id
             file_id = message.video.file_id if message.video else message.document.file_id
@@ -87,7 +85,7 @@ if bot:
                 try:
                     original_size = get_file_size_mb(input_path)
                     
-                    # محاولة تشغيل FFmpeg وضبطه ليتعامل مع الفيديوهات
+                    # استخدام إعدادات ultrafast لضمان السرعة ومنع تعليق السيرفر
                     command = [
                         "ffmpeg", "-y",
                         "-i", input_path,
@@ -97,12 +95,13 @@ if bot:
                         output_path
                     ]
                     
-                    result = subprocess.run(command, capture_output=True, text=True)
+                    # تشغيل العملية مع التقاط مخرجات الخطأ بدقة
+                    process = subprocess.run(command, capture_output=True, text=Type := str)
                     
-                    # إذا حدث خطأ في تشغيل FFmpeg
-                    if result.returncode != 0:
-                        error_detail = result.stderr[-500:] if result.stderr else "خطأ غير معروف في محرك FFmpeg"
-                        raise Exception(f"فشل محرك المعالجة:\n`{error_detail}`")
+                    if process.returncode != 0:
+                        # استخراج جزء من تفاصيل خطأ FFmpeg الحقيقي
+                        err_output = process.stderr[-400:] if process.stderr else "خطأ غير معروف في محرك المعالجة"
+                        raise Exception(f"فشل محرك FFmpeg:\n`{err_output}`")
 
                     compressed_size = get_file_size_mb(output_path)
                     saved_percentage = round(((original_size - compressed_size) / original_size) * 100, 1) if original_size > 0 else 0.0
@@ -113,16 +112,17 @@ if bot:
                         f"📉 الحجم بعد: `{compressed_size} MB`\n"
                         f"🔥 التوفير: `{saved_percentage}%`"
                     )
+                    
                     with open(output_path, 'rb') as video_file:
                         bot.send_video(chat_id=chat_id, video=video_file, caption=report_message, parse_mode="Markdown")
 
                 except Exception as ex:
-                    # إرسال سبب الفشل المفصل مباشرة إلى المستخدم عبر البوت
-                    error_msg = f"❌ **فشلت عملية ضغط الفيديو!**\n\n**السبب التقني:**\n`{str(ex)}`"
-                    bot.send_message(chat_id=chat_id, text=error_msg, parse_mode="Markdown")
+                    # إرسال سبب التوقف أو الفشل الحقيقي عبر تيليجرام فوراً
+                    error_report = f"❌ **توقف العملية أو حدث خطأ!**\n\n**السبب التقني:**\n`{str(ex)}`"
+                    bot.send_message(chat_id=chat_id, text=error_report, parse_mode="Markdown")
 
                 finally:
-                    # تنظيف الملفات المؤقتة في كلتا الحالتين (النجاح أو الفشل)
+                    # تنظيف الملفات المؤقتة تماماً لضمان عدم امتلاء الذاكرة أو المساحة
                     if os.path.exists(input_path): os.remove(input_path)
                     if os.path.exists(output_path): os.remove(output_path)
                     try:
@@ -130,13 +130,13 @@ if bot:
                     except:
                         pass
 
+            # تشغيل المهمة في خلفية مستقلة لكي لا يتاثر استقرار البوت
             threading.Thread(target=process_tg, daemon=True).start()
 
         except Exception as e:
-            bot.reply_to(message, f"❌ حدث خطأ أثناء استقبال الملف: {str(e)}")
+            bot.reply_to(message, f"❌ حدث خطأ في استقبال الملف: {str(e)}")
 
     def run_telegram_bot():
         bot.infinity_polling(none_stop=True)
         
     threading.Thread(target=run_telegram_bot, daemon=True).start()
-    
