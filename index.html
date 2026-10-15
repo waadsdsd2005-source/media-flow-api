@@ -1,258 +1,135 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Media Flow - محطة ضغط ومعالجة الفيديوهات السحابية</title>
-    <!-- Tailwind CSS CDN -->
+    <title>MediaFlow API | AI Image Optimizer & Token Saver</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        darkBg: '#0f172a',
-                        cardBg: '#1e293b',
-                        accentPrimary: '#3b82f6',
-                        accentHover: '#2563eb',
-                        successColor: '#10b981'
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="min-h-screen flex flex-col justify-between">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
 
-    <!-- Header / Navbar -->
-    <header class="glass-card border-b border-slate-800 sticky top-0 z-50 px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center space-x-3 space-x-reverse">
-            <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/30">
-                <i class="fa-solid fa-bolt text-white text-xl"></i>
+    <!-- Header -->
+    <header class="border-b border-slate-800/60 backdrop-blur-md bg-slate-950/80 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center font-bold text-lg shadow-lg shadow-indigo-500/20">M</div>
+                <span class="font-bold text-lg tracking-tight">MediaFlow <span class="text-indigo-400">API</span></span>
             </div>
-            <div>
-                <h1 class="text-xl font-bold tracking-wide">Media Flow</h1>
-                <p class="text-xs text-slate-400">محرك ضغط الفيديوهات الذكي بالخلفية</p>
+            <div class="flex items-center space-x-4">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-2"></span> System Active & Protected
+                </span>
             </div>
-        </div>
-        <div class="hidden md:flex items-center space-x-4 space-x-reverse text-sm text-slate-300">
-            <span class="flex items-center"><i class="fa-solid fa-circle text-emerald-500 text-[10px] ml-2 animate-pulse"></i> السيرفر متصل ويعمل</span>
         </div>
     </header>
 
-    <!-- Main Container -->
-    <main class="container mx-auto px-4 py-8 max-w-4xl flex-grow">
-        
-        <!-- Welcome Hero Section -->
-        <div class="text-center mb-8">
-            <h2 class="text-3xl font-extrabold mb-3 text-white">اضغط فيديوهاتك بأعلى كفاءة وأقل حجم</h2>
-            <p class="text-slate-400 text-sm max-w-xl mx-auto">ارفع أي ملف فيديو، اختر جودة الضغط المناسبة، ودع محرك FFmpeg يقوم بالباقي فوراً مع الحفاظ على وضوح الصورة.</p>
+    <!-- Hero Section -->
+    <main class="max-w-5xl mx-auto px-6 py-16 text-center">
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-6">
+            <span>⚡ Cut AI Vision API Costs by 80% • Zero Downtime Middleware</span>
         </div>
+        <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+            Supercharge Your AI Apps with <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Optimized Media</span>
+        </h1>
+        <p class="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
+            High-performance, fail-safe middleware designed to compress and format heavy images instantly before passing them to LLMs and Vision Models.
+        </p>
 
-        <!-- Upload & Control Card -->
-        <div class="glass-card rounded-2xl p-6 md:p-8 shadow-xl mb-8">
-            <form id="uploadForm" class="space-y-6">
-                
-                <!-- Dropzone Area -->
-                <div id="dropZone" class="border-2 border-dashed border-slate-600 hover:border-blue-500 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-slate-900/40 relative">
-                    <input type="file" id="videoFile" name="video" accept="video/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
-                    <div id="dropZoneContent" class="space-y-3">
-                        <div class="bg-blue-500/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-blue-400 text-2xl">
-                            <i class="fa-solid fa-cloud-arrow-up"></i>
-                        </div>
-                        <h3 class="text-lg font-semibold text-slate-200">اسحب وأفلت الفيديو هنا، أو <span class="text-blue-400 underline">اختر ملفاً</span></h3>
-                        <p class="text-xs text-slate-400">يدعم صيغ MP4, MKV, AVI, MOV وأغلب صيغ الفيديو الشهيرة</p>
-                    </div>
-                </div>
-
-                <!-- Quality Selection -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <label class="cursor-pointer">
-                        <input type="radio" name="quality" value="balanced" checked class="peer sr-only">
-                        <div class="glass-card rounded-xl p-4 text-center border-2 border-transparent peer-checked:border-blue-500 peer-checked:bg-blue-600/10 transition-all">
-                            <i class="fa-solid fa-scale-balanced text-blue-400 text-lg mb-1"></i>
-                            <h4 class="font-bold text-sm text-white">متوازن (موصى به)</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">توفير ممتاز مع جودة واضحة</p>
-                        </div>
-                    </label>
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="quality" value="max" class="peer sr-only">
-                        <div class="glass-card rounded-xl p-4 text-center border-2 border-transparent peer-checked:border-blue-500 peer-checked:bg-blue-600/10 transition-all">
-                            <i class="fa-solid fa-fire text-orange-400 text-lg mb-1"></i>
-                            <h4 class="font-bold text-sm text-white">ضغط أقصى</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">أصغر حجم ممكن للملف</p>
-                        </div>
-                    </label>
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="quality" value="high" class="peer sr-only">
-                        <div class="glass-card rounded-xl p-4 text-center border-2 border-transparent peer-checked:border-blue-500 peer-checked:bg-blue-600/10 transition-all">
-                            <i class="fa-solid fa-gem text-emerald-400 text-lg mb-1"></i>
-                            <h4 class="font-bold text-sm text-white">جودة عالية</h4>
-                            <p class="text-[11px] text-slate-400 mt-1">أعلى وضوح وأقل ضغط</p>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- Submit Button -->
-                <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-blue-600/30 transition-all duration-300 flex items-center justify-center space-x-2 space-x-reverse">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span>بدء ضغط ومعالجة الفيديو</span>
-                </button>
-            </form>
-
-            <!-- Progress Bar (Hidden by Default) -->
-            <div id="progressContainer" class="hidden mt-6 space-y-2">
-                <div class="flex justify-between text-xs text-slate-300">
-                    <span id="progressText">جاري رفع ومعالجة الفيديو عبر السيرفر...</span>
-                    <span id="progressPercent">0%</span>
-                </div>
-                <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
-                    <div id="progressBar" class="bg-blue-500 h-2.5 rounded-full transition-all duration-300 w-0"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Result Card (Hidden by Default) -->
-        <div id="resultCard" class="hidden glass-card rounded-2xl p-6 md:p-8 shadow-xl border-emerald-500/30 bg-emerald-950/10 mb-8">
-            <div class="flex items-center space-x-3 space-x-reverse mb-6">
-                <div class="bg-emerald-500/20 p-2 rounded-xl text-emerald-400 text-xl">
-                    <i class="fa-solid fa-circle-check"></i>
-                </div>
+        <!-- Live Playground Card -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-left max-w-2xl mx-auto">
+            <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
+                <svg class="w-5 h-5 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Live Playground Test
+            </h3>
+            
+            <div class="space-y-4">
                 <div>
-                    <h3 class="text-lg font-bold text-white">تم ضغط الفيديو بنجاح تام!</h3>
-                    <p class="text-xs text-slate-400">تمت المعالجة عبر أداة FFmpeg بنجاح</p>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Select Image to Optimize</label>
+                    <input type="file" id="imageInput" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer file:transition-all border border-slate-800 rounded-xl bg-slate-950/50 p-2">
                 </div>
+
+                <button onclick="uploadAndOptimize()" id="optimizeBtn" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all duration-200">
+                    Process & Optimize Image
+                </button>
             </div>
 
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-center">
-                    <span class="text-xs text-slate-400 block mb-1">الحجم قبل الضغط</span>
-                    <span id="resOriginal" class="text-lg font-bold text-white">- MB</span>
-                </div>
-                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-center">
-                    <span class="text-xs text-slate-400 block mb-1">الحجم بعد الضغط</span>
-                    <span id="resCompressed" class="text-lg font-bold text-emerald-400">- MB</span>
-                </div>
-                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800 text-center">
-                    <span class="text-xs text-slate-400 block mb-1">نسبة التوفير</span>
-                    <span id="resSaved" class="text-lg font-bold text-blue-400">- %</span>
+            <!-- Error Box -->
+            <div id="errorBox" class="hidden mt-6 p-4 rounded-xl bg-rose-950/50 border border-rose-800 text-sm text-rose-300"></div>
+
+            <!-- Result Box -->
+            <div id="resultBox" class="hidden mt-6 p-4 rounded-xl bg-slate-950 border border-slate-800 text-sm space-y-2">
+                <div class="text-emerald-400 font-semibold mb-2">✨ Optimization Successful!</div>
+                <div class="flex justify-between text-slate-300"><span>Original Size:</span> <span id="origSize" class="font-mono"></span></div>
+                <div class="flex justify-between text-slate-300"><span>Optimized Size:</span> <span id="optSize" class="font-mono"></span></div>
+                <div class="flex justify-between text-indigo-400 font-semibold"><span>Saved Space:</span> <span id="savedPct" class="font-mono"></span></div>
+                <div class="pt-3">
+                    <a id="downloadLink" href="#" download="optimized.webp" class="block text-center py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-all">Download Optimized WebP</a>
                 </div>
             </div>
-
-            <!-- Download Button -->
-            <a id="downloadBtn" href="#" class="block w-full text-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-600/30 transition-all duration-300">
-                <i class="fa-solid fa-download ml-2"></i> تحميل الفيديو المضغوط
-            </a>
         </div>
-
     </main>
 
     <!-- Footer -->
-    <footer class="glass-card border-t border-slate-800 text-center py-4 text-xs text-slate-500">
-        <p>Media Flow Cloud Processing Engine &copy; 2026. جميع الحقوق محفوظة.</p>
+    <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+        <p>&copy; 2026 MediaFlow API. Built for high-performance AI systems with fail-safe resilience.</p>
     </footer>
 
-    <!-- JavaScript Handling -->
     <script>
-        const fileInput = document.getElementById('videoFile');
-        const dropZoneContent = document.getElementById('dropZoneContent');
-        const uploadForm = document.getElementById('uploadForm');
-        const progressContainer = document.getElementById('progressContainer');
-        const progressBar = document.getElementById('progressBar');
-        const progressPercent = document.getElementById('progressPercent');
-        const progressText = document.getElementById('progressText');
-        const resultCard = document.getElementById('resultCard');
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                const fileName = e.target.files[0].name;
-                dropZoneContent.innerHTML = `
-                    <div class="bg-emerald-500/10 w-14 h-14 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-xl">
-                        <i class="fa-solid fa-file-video"></i>
-                    </div>
-                    <p class="text-sm font-semibold text-emerald-400">الملف المحدد: ${fileName}</p>
-                    <p class="text-xs text-slate-400">جاهز للرفع والمعالجة</p>
-                `;
-            }
-        });
+        async function uploadAndOptimize() {
+            const fileInput = document.getElementById('imageInput');
+            const btn = document.getElementById('optimizeBtn');
+            const resultBox = document.getElementById('resultBox');
+            const errorBox = document.getElementById('errorBox');
 
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const file = fileInput.files[0];
-            if (!file) {
-                alert('الرجاء اختيار ملف فيديو أولاً!');
+            resultBox.classList.add('hidden');
+            errorBox.classList.add('hidden');
+
+            if (fileInput.files.length === 0) {
+                errorBox.textContent = 'Please select an image first.';
+                errorBox.classList.remove('hidden');
                 return;
             }
 
-            const quality = document.querySelector('input[name="quality"]:checked').value;
             const formData = new FormData();
-            formData.append('video', file);
-            formData.append('quality', quality === 'balanced' ? '28' : (quality === 'max' ? '32' : '23'));
+            formData.append('file', fileInput.files[0]);
 
-            // إظهار شريط التقدم
-            progressContainer.classList.remove('hidden');
-            resultCard.classList.add('hidden');
-            document.getElementById('submitBtn').disabled = true;
-
-            let progress = 10;
-            const interval = setInterval(() => {
-                if (progress < 90) {
-                    progress += 10;
-                    progressBar.style.width = progress + '%';
-                    progressPercent.innerText = progress + '%';
-                }
-            }, 300);
+            btn.disabled = true;
+            btn.textContent = 'Processing safely...';
 
             try {
-                const response = await fetch('/api/compress', {
+                const response = await fetch('/v1/optimize', {
                     method: 'POST',
                     body: formData
                 });
 
-                clearInterval(interval);
-                progressBar.style.width = '100%';
-                progressPercent.innerText = '100%';
-
-                const data = await response.json();
-                if (response.ok && data.status === 'success') {
-                    setTimeout(() => {
-                        progressContainer.classList.add('hidden');
-                        resultCard.classList.remove('hidden');
-                        
-                        document.getElementById('resOriginal').innerText = data.original_size + ' MB';
-                        document.getElementById('resCompressed').innerText = data.compressed_size + ' MB';
-                        document.getElementById('resSaved').innerText = data.saved_percentage + ' %';
-                        document.getElementById('downloadBtn').href = data.download_url;
-                        
-                        document.getElementById('submitBtn').disabled = false;
-                    }, 500);
-                } else {
-                    throw new Error(data.detail || 'حدث خطأ غير معروف');
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || 'Server processing failed');
                 }
-            } catch (err) {
-                clearInterval(interval);
-                progressContainer.classList.add('hidden');
-                alert('فشلت العملية: ' + err.message);
-                document.getElementById('submitBtn').disabled = false;
+
+                const origBytes = response.headers.get('X-Original-Size-Bytes');
+                const optBytes = response.headers.get('X-Optimized-Size-Bytes');
+                const savedPct = response.headers.get('X-Saved-Percentage');
+
+                document.getElementById('origSize').textContent = (origBytes / 1024).toFixed(2) + ' KB';
+                document.getElementById('optSize').textContent = (optBytes / 1024).toFixed(2) + ' KB';
+                document.getElementById('savedPct').textContent = savedPct;
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                document.getElementById('downloadLink').href = url;
+
+                resultBox.classList.remove('hidden');
+            } catch (error) {
+                errorBox.textContent = 'Error: ' + error.message;
+                errorBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Process & Optimize Image';
             }
-        });
+        }
     </script>
 </body>
 </html>
