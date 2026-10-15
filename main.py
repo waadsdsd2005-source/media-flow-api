@@ -58,7 +58,6 @@ def download_file(file_name: str):
         return FileResponse(path=file_path, filename=file_name, media_type="video/mp4")
     raise HTTPException(status_code=404, detail="الملف غير موجود أو انتهت صلاحيته")
 
-# إعدادات بوت تيليجرام الذكي مع التقاط الأخطاء وأسباب التوقف
 if bot:
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
@@ -85,7 +84,6 @@ if bot:
                 try:
                     original_size = get_file_size_mb(input_path)
                     
-                    # استخدام إعدادات ultrafast لضمان السرعة ومنع تعليق السيرفر
                     command = [
                         "ffmpeg", "-y",
                         "-i", input_path,
@@ -95,11 +93,9 @@ if bot:
                         output_path
                     ]
                     
-                    # تشغيل العملية مع التقاط مخرجات الخطأ بدقة
-                    process = subprocess.run(command, capture_output=True, text=Type := stur)
+                    process = subprocess.run(command, capture_output=True, text=True)
                     
                     if process.returncode != 0:
-                        # استخراج جزء من تفاصيل خطأ FFmpeg الحقيقي
                         err_output = process.stderr[-400:] if process.stderr else "خطأ غير معروف في محرك المعالجة"
                         raise Exception(f"فشل محرك FFmpeg:\n`{err_output}`")
 
@@ -117,12 +113,10 @@ if bot:
                         bot.send_video(chat_id=chat_id, video=video_file, caption=report_message, parse_mode="Markdown")
 
                 except Exception as ex:
-                    # إرسال سبب التوقف أو الفشل الحقيقي عبر تيليجرام فوراً
                     error_report = f"❌ **توقف العملية أو حدث خطأ!**\n\n**السبب التقني:**\n`{str(ex)}`"
                     bot.send_message(chat_id=chat_id, text=error_report, parse_mode="Markdown")
 
                 finally:
-                    # تنظيف الملفات المؤقتة تماماً لضمان عدم امتلاء الذاكرة أو المساحة
                     if os.path.exists(input_path): os.remove(input_path)
                     if os.path.exists(output_path): os.remove(output_path)
                     try:
@@ -130,7 +124,6 @@ if bot:
                     except:
                         pass
 
-            # تشغيل المهمة في خلفية مستقلة لكي لا يتاثر استقرار البوت
             threading.Thread(target=process_tg, daemon=True).start()
 
         except Exception as e:
@@ -140,3 +133,4 @@ if bot:
         bot.infinity_polling(none_stop=True)
         
     threading.Thread(target=run_telegram_bot, daemon=True).start()
+            
