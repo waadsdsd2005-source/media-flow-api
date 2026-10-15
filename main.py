@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(BOT_TOKEN) if BOT_TOKEN else None
 
-app = FastAPI(title="Media Flow - Optimized Video Processing API")
+app = FastAPI(title="Media Flow - Background Video Processing")
 
 UPLOAD_DIR = "uploads"
 PROCESSED_DIR = "processed"
@@ -28,6 +28,34 @@ def serve_dashboard():
             return f.read()
     return "<h2>صفحة index.html غير موجودة!</h2>"
 
+# دالة المعالجة الخلفية المستقلة للموقع
+def background_process_web(input_path, output_path, job_id):
+    try:
+        original_size = get_file_size_mb(input_path)
+        
+        command = [
+            "ffmpeg", "-y",
+            "-i", input_path,
+            "-vcodec", "libx264",
+            "-crf", "28",
+            "-preset", "ultrafast",
+            output_path
+        ]
+        
+        process = subprocess.run(command, capture_output=True, text=True)
+        
+        if process.returncode != 0:
+            # يمكن تسجيل الخطأ أو حفظه في ملف لوج مؤقت إذا أردت إظهاره للمستخدم لاحقاً
+            print(f"FFmpeg Error in Job {job_id}: {process.stderr}")
+
+    except Exception as e:
+        print(f"Exception in Job {job_id}: {str(e)}")
+        
+    finally:
+        # تنظيف ملف الإدخال الأصلي وتفريغ الذاكرة
+        if os.path.exists(input_path):
+            os.remove(input_path)
+
 @app.post("/api/compress")
 async def process_web_video(background_tasks: BackgroundTasks, video: UploadFile = File(...), quality: str = Form("28")):
     try:
@@ -38,14 +66,19 @@ async def process_web_video(background_tasks: BackgroundTasks, video: UploadFile
         input_path = os.path.join(UPLOAD_DIR, input_filename)
         output_path = os.path.join(PROCESSED_DIR, output_filename)
 
+        # حفظ الملف المرفوع من المتصفح
         with open(input_path, "wb") as buffer:
             content = await video.read()
             buffer.write(content)
 
+        # تشغيل المعالجة في الخلفية بحيث تستمر حتى لو أغلق المستخدم الموقع أو انقطع الإنترنت
+        background_tasks.add_task(background_process_web, input_path, output_path, job_id)
+
         return {
-            "status": "queued",
+            "status": "success",
             "job_id": job_id,
-            "message": "تم استلام الفيديو وبدء المعالجة"
+            "download_url": f"/api/download/{output_filename}",
+            "message": "بدء الضغط في خلفية السيرفر! يمكنك إغلاق الموقع وسيبقى العمل مستمراً."
         }
 
     except Exception as e:
@@ -56,16 +89,17 @@ def download_file(file_name: str):
     file_path = os.path.join(PROCESSED_DIR, file_name)
     if os.path.exists(file_path):
         return FileResponse(path=file_path, filename=file_name, media_type="video/mp4")
-    raise HTTPException(status_code=404, detail="الملف غير موجود أو انتهت صلاحيته")
+    raise HTTPException(status_code=404, detail="الملف غير موجود أو انتهت صلاحيته أو لم يكتمل بعد")
 
+# إعدادات بوت تيليجرام (يعمل بالكامل في الخلفية المستقلة أيضاً)
 if bot:
     @bot.message_handler(commands=['start'])
     def send_welcome(message):
-        bot.reply_to(message, "أهلاً بك في بوت Media Flow! أرسل الفيديو وسأقوم بمعالجته وإرسال التقرير أو سبب الخطأ فوراً إن حدث.")
+        bot.reply_to(message, "أهلاً بك في بوت Media Flow! أرسل الفيديو وسأعالجه في الخلفية وأرسل لك النتيجة فوراً.")
 
     @bot.message_handler(content_types=['video', 'document'])
     def handle_video(message):
-        sent_msg = bot.reply_to(message, "⏳ جارٍ معالجة وضغط الفيديو بأقصى سرعة...")
+        sent_msg = bot.reply_to(message, "⏳ تم استلام الفيديو وبدء المعالجة في الخلفية...")
         try:
             chat_id = message.chat.id
             file_id = message.video.file_id if message.video else message.document.file_id
@@ -103,7 +137,7 @@ if bot:
                     saved_percentage = round(((original_size - compressed_size) / original_size) * 100, 1) if original_size > 0 else 0.0
 
                     report_message = (
-                        f"✅ **تم ضغط الفيديو بنجاح!**\n\n"
+                        f"✅ **تم ضغط الفيديو بنجاح في الخلفية!**\n\n"
                         f"📦 الحجم قبل: `{original_size} MB`\n"
                         f"📉 الحجم بعد: `{compressed_size} MB`\n"
                         f"🔥 التوفير: `{saved_percentage}%`"
@@ -124,6 +158,7 @@ if bot:
                     except:
                         pass
 
+            # تشغيل العملية في خلفية تيليجرام المستقلة
             threading.Thread(target=process_tg, daemon=True).start()
 
         except Exception as e:
@@ -133,4 +168,4 @@ if bot:
         bot.infinity_polling(none_stop=True)
         
     threading.Thread(target=run_telegram_bot, daemon=True).start()
-            
+        
