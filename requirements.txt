@@ -1,6 +1,4 @@
-fastapi
-uvicorn
-python-multipart
-pyTelegramBotAPI
-requests
-pydantic
+fastapi==0.110.0
+uvicorn==0.28.0
+pillow==10.2.0
+python-multipart==0.0.9
