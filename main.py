@@ -96,7 +96,7 @@ if bot:
                     ]
                     
                     # تشغيل العملية مع التقاط مخرجات الخطأ بدقة
-                    process = subprocess.run(command, capture_output=True, text=Type := str)
+                    process = subprocess.run(command, capture_output=True, text=Type := stur)
                     
                     if process.returncode != 0:
                         # استخراج جزء من تفاصيل خطأ FFmpeg الحقيقي
