@@ -28,7 +28,7 @@
     <!-- Hero Section -->
     <main class="max-w-5xl mx-auto px-6 py-16 text-center">
         <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-6">
-            <span>⚡ Cut AI Vision API Costs by 80% • Zero Downtime Middleware</span>
+            <span>⚡ Cut AI Vision API Costs by 80% • Supports Single & Batch Images</span>
         </div>
         <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
             Supercharge Your AI Apps with <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Optimized Media</span>
@@ -41,17 +41,17 @@
         <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-left max-w-2xl mx-auto">
             <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
                 <svg class="w-5 h-5 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                Live Playground Test
+                Live Playground Test (Single / Batch)
             </h3>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Select Image to Optimize</label>
-                    <input type="file" id="imageInput" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer file:transition-all border border-slate-800 rounded-xl bg-slate-950/50 p-2">
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Select Image(s) to Optimize (Max 10)</label>
+                    <input type="file" id="imageInput" accept="image/*" multiple class="w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer file:transition-all border border-slate-800 rounded-xl bg-slate-950/50 p-2">
                 </div>
 
                 <button onclick="uploadAndOptimize()" id="optimizeBtn" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all duration-200">
-                    Process & Optimize Image
+                    Process & Optimize Images
                 </button>
             </div>
 
@@ -65,7 +65,7 @@
                 <div class="flex justify-between text-slate-300"><span>Optimized Size:</span> <span id="optSize" class="font-mono"></span></div>
                 <div class="flex justify-between text-indigo-400 font-semibold"><span>Saved Space:</span> <span id="savedPct" class="font-mono"></span></div>
                 <div class="pt-3">
-                    <a id="downloadLink" href="#" download="optimized.webp" class="block text-center py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-all">Download Optimized WebP</a>
+                    <a id="downloadLink" href="#" download="optimized.webp" class="block text-center py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-all">Download Optimized File(s)</a>
                 </div>
             </div>
         </div>
@@ -87,19 +87,29 @@
             errorBox.classList.add('hidden');
 
             if (fileInput.files.length === 0) {
-                errorBox.textContent = 'Please select an image first.';
+                errorBox.textContent = 'Please select at least one image first.';
                 errorBox.classList.remove('hidden');
                 return;
             }
 
             const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+            const files = fileInput.files;
+            
+            let endpoint = '/v1/optimize';
+            if (files.length > 1) {
+                endpoint = '/v1/optimize-batch';
+                for (let i = 0; i < files.length; i++) {
+                    formData.append('files', files[i]);
+                }
+            } else {
+                formData.append('file', files[0]);
+            }
 
             btn.disabled = true;
             btn.textContent = 'Processing safely...';
 
             try {
-                const response = await fetch('/v1/optimize', {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     body: formData
                 });
@@ -109,9 +119,21 @@
                     throw new Error(errData.detail || 'Server processing failed');
                 }
 
-                const origBytes = response.headers.get('X-Original-Size-Bytes');
-                const optBytes = response.headers.get('X-Optimized-Size-Bytes');
-                const savedPct = response.headers.get('X-Saved-Percentage');
+                let origBytes, optBytes, savedPct, filename, mimeType;
+
+                if (files.length > 1) {
+                    origBytes = response.headers.get('X-Total-Original-Size');
+                    optBytes = response.headers.get('X-Total-Optimized-Size');
+                    savedPct = response.headers.get('X-Total-Saved-Percentage');
+                    filename = 'mediaflow_batch.zip';
+                    mimeType = 'application/zip';
+                } else {
+                    origBytes = response.headers.get('X-Original-Size-Bytes');
+                    optBytes = response.headers.get('X-Optimized-Size-Bytes');
+                    savedPct = response.headers.get('X-Saved-Percentage');
+                    filename = 'optimized.webp';
+                    mimeType = 'image/webp';
+                }
 
                 document.getElementById('origSize').textContent = (origBytes / 1024).toFixed(2) + ' KB';
                 document.getElementById('optSize').textContent = (optBytes / 1024).toFixed(2) + ' KB';
@@ -119,7 +141,9 @@
 
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
-                document.getElementById('downloadLink').href = url;
+                const dlLink = document.getElementById('downloadLink');
+                dlLink.href = url;
+                dlLink.download = filename;
 
                 resultBox.classList.remove('hidden');
             } catch (error) {
@@ -127,7 +151,7 @@
                 errorBox.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Process & Optimize Image';
+                btn.textContent = 'Process & Optimize Images';
             }
         }
     </script>
