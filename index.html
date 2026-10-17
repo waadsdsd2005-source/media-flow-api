@@ -18,35 +18,39 @@
                 <span class="font-bold text-lg tracking-tight">MediaFlow <span class="text-indigo-400">API</span></span>
             </div>
             <div class="flex items-center space-x-4">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-2"></span> System Active & Protected
-                </span>
+                <button onclick="generateKey()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition-all">
+                    Get Free API Key 🔑
+                </button>
             </div>
         </div>
     </header>
 
-    <!-- Hero Section -->
+    <!-- Main Section -->
     <main class="max-w-5xl mx-auto px-6 py-16 text-center">
         <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-6">
-            <span>⚡ Cut AI Vision API Costs by 80% • Supports Single & Batch Images</span>
+            <span>⚡ Cut AI Vision API Costs by 80% • API Key Protected</span>
         </div>
         <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
             Supercharge Your AI Apps with <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Optimized Media</span>
         </h1>
-        <p class="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
-            High-performance, fail-safe middleware designed to compress and format heavy images instantly before passing them to LLMs and Vision Models.
-        </p>
 
-        <!-- Live Playground Card -->
+        <!-- API Key Result Banner -->
+        <div id="keyBox" class="hidden mb-8 max-w-2xl mx-auto p-4 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-left text-sm space-y-1">
+            <div class="text-indigo-300 font-semibold">Your Free API Key Generated:</div>
+            <div class="font-mono text-emerald-400 select-all bg-slate-900 p-2 rounded-lg border border-slate-800" id="keyText"></div>
+            <div class="text-xs text-slate-400 mt-1">Pass this key in request header: <span class="font-mono text-indigo-300">x-api-key</span></div>
+        </div>
+
+        <!-- Playground Card -->
         <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-left max-w-2xl mx-auto">
             <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
                 <svg class="w-5 h-5 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                Live Playground Test (Single / Batch)
+                Live Playground Test
             </h3>
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Select Image(s) to Optimize (Max 10)</label>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Select Image(s) to Optimize</label>
                     <input type="file" id="imageInput" accept="image/*" multiple class="w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer file:transition-all border border-slate-800 rounded-xl bg-slate-950/50 p-2">
                 </div>
 
@@ -71,12 +75,25 @@
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        <p>&copy; 2026 MediaFlow API. Built for high-performance AI systems with fail-safe resilience.</p>
+        <p>&copy; 2026 MediaFlow API. Built for high-performance AI systems.</p>
     </footer>
 
     <script>
+        let currentApiKey = 'mediaflow_demo_12345';
+
+        async function generateKey() {
+            try {
+                const res = await fetch('/v1/generate-key', { method: 'POST' });
+                const data = await res.json();
+                currentApiKey = data.api_key;
+                document.getElementById('keyText').textContent = data.api_key;
+                document.getElementById('keyBox').classList.remove('hidden');
+            } catch (e) {
+                alert('Failed to generate key');
+            }
+        }
+
         async function uploadAndOptimize() {
             const fileInput = document.getElementById('imageInput');
             const btn = document.getElementById('optimizeBtn');
@@ -111,6 +128,7 @@
             try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
+                    headers: { 'x-api-key': currentApiKey },
                     body: formData
                 });
 
@@ -119,20 +137,18 @@
                     throw new Error(errData.detail || 'Server processing failed');
                 }
 
-                let origBytes, optBytes, savedPct, filename, mimeType;
+                let origBytes, optBytes, savedPct, filename;
 
                 if (files.length > 1) {
                     origBytes = response.headers.get('X-Total-Original-Size');
                     optBytes = response.headers.get('X-Total-Optimized-Size');
                     savedPct = response.headers.get('X-Total-Saved-Percentage');
                     filename = 'mediaflow_batch.zip';
-                    mimeType = 'application/zip';
                 } else {
                     origBytes = response.headers.get('X-Original-Size-Bytes');
                     optBytes = response.headers.get('X-Optimized-Size-Bytes');
                     savedPct = response.headers.get('X-Saved-Percentage');
                     filename = 'optimized.webp';
-                    mimeType = 'image/webp';
                 }
 
                 document.getElementById('origSize').textContent = (origBytes / 1024).toFixed(2) + ' KB';
