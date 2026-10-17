@@ -1,18 +1,19 @@
 import time
 import asyncio
 import httpx
-from typing import List
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query
+from typing import List, Optional
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Header
 from fastapi.responses import Response, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from optimizer import optimize_image_for_ai
 import zipfile
 import io
+import uuid
 
 app = FastAPI(
     title="MediaFlow API",
-    description="High-performance, fault-tolerant middleware to optimize multiple images for AI LLMs.",
-    version="1.2.0"
+    description="High-performance middleware with API Key protection.",
+    version="1.3.0"
 )
 
 app.add_middleware(
@@ -23,12 +24,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🛡️ نظام منع السبات الذاتي (Anti-Sleep Mechanism)
+# قاعدة بيانات مؤقتة لمفاتيح الـ API التجريبية (Demo Keys)
+VALID_API_KEYS = {"mediaflow_demo_12345"}
+
+# 🛡️ نظام منع السبات الذاتي
 @app.on_event("startup")
 async def startup_event():
     async def keep_alive():
         while True:
-            await asyncio.sleep(600)  # كل 10 دقائق
+            await asyncio.sleep(600)
             try:
                 async with httpx.AsyncClient() as client:
                     await client.get("https://media-flow-api.onrender.com/", timeout=5.0)
@@ -44,15 +48,27 @@ def read_root():
     except Exception:
         return "<h1>MediaFlow API is Running Online 🚀</h1>"
 
-# 1. مسار معالجة صورة فردية
+# 🔑 مسار لتوليد مفتاح API مجاني للمطورين
+@app.post("/v1/generate-key")
+def generate_free_key():
+    new_key = f"mf_live_{uuid.uuid4().hex[:16]}"
+    VALID_API_KEYS.add(new_key)
+    return {"api_key": new_key, "limit": "1000 requests/month", "status": "active"}
+
+# 1. مسار معالجة صورة فردية (مع التحقق من المفتاح)
 @app.post("/v1/optimize")
 async def optimize_image(
     file: UploadFile = File(...),
-    max_dimension: int = Query(1024, description="Max width or height in pixels"),
-    quality: int = Query(80, description="Image quality (1-100)")
+    max_dimension: int = Query(1024),
+    quality: int = Query(80),
+    x_api_key: Optional[str] = Header(None)
 ):
+    # إذا كان الطلب من المتصفح المباشر أو بمفتاح صحيح نمرره
+    if x_api_key and x_api_key not in VALID_API_KEYS:
+        raise HTTPException(status_code=401, detail="Invalid or missing API Key. Get a free key at home page.")
+
     if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload a valid image.")
+        raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image.")
 
     start_time = time.time()
     
@@ -85,19 +101,22 @@ async def optimize_image(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Image processing failed safely: {str(e)}")
 
-# 2. مسار معالجة صور متعددة دفعة واحدة (Batch Processing)
+# 2. مسار معالجة صور متعددة
 @app.post("/v1/optimize-batch")
 async def optimize_multiple_images(
     files: List[UploadFile] = File(...),
     max_dimension: int = Query(1024),
-    quality: int = Query(80)
+    quality: int = Query(80),
+    x_api_key: Optional[str] = Header(None)
 ):
+    if x_api_key and x_api_key not in VALID_API_KEYS:
+        raise HTTPException(status_code=401, detail="Invalid or missing API Key.")
+
     if len(files) > 10:
-        raise HTTPException(status_code=400, detail="Maximum 10 images allowed per batch to protect server memory.")
+        raise HTTPException(status_code=400, detail="Maximum 10 images allowed per batch.")
     
     if len(files) == 1:
-        # إذا تم اختيار صورة واحدة، نمررها للطريقة العادية
-        return await optimize_image(files[0], max_dimension, quality)
+        return await optimize_image(files[0], max_dimension, quality, x_api_key)
     
     try:
         zip_buffer = io.BytesIO()
@@ -119,7 +138,6 @@ async def optimize_multiple_images(
                 zip_file.writestr(f"optimized_{idx+1}.webp", optimized_bytes)
                 
         zip_buffer.seek(0)
-        
         saved_total_pct = ((total_orig - total_opt) / total_orig) * 100 if total_orig > 0 else 0
 
         headers = {
@@ -132,5 +150,4 @@ async def optimize_multiple_images(
         return Response(content=zip_buffer.getvalue(), media_type="application/zip", headers=headers)
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Batch processing failed safely: {str(e)}")
-                
+        raise HTTPException(status_code=500, detail=f"Batch processing failed: {str(e)}")
