@@ -17,22 +17,28 @@
                 <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center font-bold text-lg shadow-lg shadow-indigo-500/20">M</div>
                 <span class="font-bold text-lg tracking-tight">MediaFlow <span class="text-indigo-400">API</span></span>
             </div>
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-6 text-sm font-medium">
+                <a href="#playground" class="hover:text-indigo-400 transition-colors">Playground</a>
+                <a href="#docs" class="hover:text-indigo-400 transition-colors">Docs</a>
+                <a href="#pricing" class="hover:text-indigo-400 transition-colors">Pricing</a>
                 <button onclick="generateKey()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-xl shadow-lg shadow-indigo-600/20 transition-all">
-                    Get Free API Key 🔑
+                    Get Free Key 🔑
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Section -->
+    <!-- Main Hero -->
     <main class="max-w-5xl mx-auto px-6 py-16 text-center">
         <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-6">
-            <span>⚡ Cut AI Vision API Costs by 80% • API Key Protected</span>
+            <span>⚡ Cut AI Vision API Costs by 90%+ • Production Ready</span>
         </div>
         <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
             Supercharge Your AI Apps with <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">Optimized Media</span>
         </h1>
+        <p class="text-lg text-slate-400 max-w-2xl mx-auto mb-10">
+            High-performance, zero-downtime middleware designed to compress and format heavy images before passing them to LLMs and Vision Models.
+        </p>
 
         <!-- API Key Result Banner -->
         <div id="keyBox" class="hidden mb-8 max-w-2xl mx-auto p-4 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-left text-sm space-y-1">
@@ -42,7 +48,7 @@
         </div>
 
         <!-- Playground Card -->
-        <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-left max-w-2xl mx-auto">
+        <section id="playground" class="bg-slate-900/60 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl text-left max-w-2xl mx-auto mb-20">
             <h3 class="text-lg font-semibold text-white mb-4 flex items-center">
                 <svg class="w-5 h-5 text-indigo-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 Live Playground Test
@@ -50,7 +56,7 @@
             
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-300 mb-2">Select Image(s) to Optimize</label>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Select Image(s) to Optimize (Single or Batch)</label>
                     <input type="file" id="imageInput" accept="image/*" multiple class="w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer file:transition-all border border-slate-800 rounded-xl bg-slate-950/50 p-2">
                 </div>
 
@@ -72,9 +78,110 @@
                     <a id="downloadLink" href="#" download="optimized.webp" class="block text-center py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-medium transition-all">Download Optimized File(s)</a>
                 </div>
             </div>
-        </div>
+        </section>
+
+        <!-- Developer Documentation Section -->
+        <section id="docs" class="text-left max-w-4xl mx-auto mb-20 border-t border-slate-900 pt-16">
+            <h2 class="text-2xl font-bold text-white mb-3">Quick Integration Guide</h2>
+            <p class="text-slate-400 text-sm mb-6">Integrate MediaFlow API into your Python or Node.js AI workflows in seconds.</p>
+            
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 overflow-x-auto">
+                <div class="text-xs font-mono text-indigo-400 mb-2">// Python Integration Example</div>
+                <pre class="font-mono text-xs text-slate-300"><code>import requests
+
+url = "https://media-flow-api.onrender.com/v1/optimize"
+headers = {"x-api-key": "YOUR_API_KEY_HERE"}
+files = {"file": open("image.png", "rb")}
+
+response = requests.post(url, headers=headers, files=files)
+
+if response.status_code == 200:
+    with open("compressed.webp", "wb") as f:
+        f.write(response.content)
+    print("Tokens Saved:", response.headers.get("X-Saved-Percentage"))</code></pre>
+            </div>
+        </section>
+
+        <!-- Pricing Tiers Section -->
+        <section id="pricing" class="border-t border-slate-900 pt-16 mb-16">
+            <h2 class="text-3xl font-extrabold text-white mb-3">Simple, Transparent Pricing</h2>
+            <p class="text-slate-400 text-sm mb-12">Pay once or subscribe to unlock high-capacity processing.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+                <!-- Free Plan -->
+                <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-2">Developer Free</h3>
+                        <p class="text-slate-400 text-xs mb-6">Ideal for testing and personal projects.</p>
+                        <div class="text-3xl font-extrabold text-white mb-6">$0 <span class="text-xs font-normal text-slate-400">/ mo</span></div>
+                        <ul class="text-xs text-slate-300 space-y-3 mb-8">
+                            <li class="flex items-center">✓ 1,000 Images / month</li>
+                            <li class="flex items-center">✓ WebP Compression Engine</li>
+                            <li class="flex items-center">✓ Standard Speed</li>
+                        </ul>
+                    </div>
+                    <button onclick="generateKey()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs transition-all">Get Free Key</button>
+                </div>
+
+                <!-- Pro Plan -->
+                <div class="bg-gradient-to-b from-indigo-950/40 to-slate-900/60 border border-indigo-500/50 rounded-2xl p-6 flex flex-col justify-between relative shadow-xl shadow-indigo-500/10">
+                    <span class="absolute -top-3 right-6 bg-indigo-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">Most Popular</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-2">Pro Builder</h3>
+                        <p class="text-slate-400 text-xs mb-6">For production AI apps and heavy workloads.</p>
+                        <div class="text-3xl font-extrabold text-white mb-6">$15 <span class="text-xs font-normal text-slate-400">/ mo</span></div>
+                        <ul class="text-xs text-slate-300 space-y-3 mb-8">
+                            <li class="flex items-center">✓ 30,000 Images / month</li>
+                            <li class="flex items-center">✓ Batch Processing Enabled</li>
+                            <li class="flex items-center">✓ High Priority Processing</li>
+                            <li class="flex items-center">✓ Zero Downtime Guaranteed</li>
+                        </ul>
+                    </div>
+                    <button onclick="openPaymentModal('Pro Builder', '$15')" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-xs shadow-lg shadow-indigo-600/20 transition-all">Upgrade with Crypto / USDT</button>
+                </div>
+
+                <!-- Enterprise Plan -->
+                <div class="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-white mb-2">Scale / Agency</h3>
+                        <p class="text-slate-400 text-xs mb-6">For high-traffic platforms & enterprise Vision AI.</p>
+                        <div class="text-3xl font-extrabold text-white mb-6">$49 <span class="text-xs font-normal text-slate-400">/ mo</span></div>
+                        <ul class="text-xs text-slate-300 space-y-3 mb-8">
+                            <li class="flex items-center">✓ Unlimited Requests</li>
+                            <li class="flex items-center">✓ Dedicated Memory Allocation</li>
+                            <li class="flex items-center">✓ 24/7 Priority Support</li>
+                        </ul>
+                    </div>
+                    <button onclick="openPaymentModal('Scale Plan', '$49')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs transition-all">Contact / Upgrade</button>
+                </div>
+            </div>
+        </section>
     </main>
 
+    <!-- USDT / Crypto Payment Modal -->
+    <div id="paymentModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full text-left space-y-4 relative">
+            <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white">&times;</button>
+            <h3 class="text-lg font-bold text-white" id="modalPlanTitle">Upgrade Plan</h3>
+            <p class="text-xs text-slate-400">Send payment via Binance / USDT (TRC20 or BEP20) to instantly activate your high-capacity API key.</p>
+            
+            <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 space-y-2 text-xs font-mono">
+                <div class="text-slate-400">USDT Address (TRC20 / Binance):</div>
+                <div class="text-emerald-400 select-all break-all bg-slate-900 p-2 rounded">YOUR_BINANCE_USDT_WALLET_ADDRESS_HERE</div>
+            </div>
+
+            <div class="space-y-2 text-xs">
+                <label class="block text-slate-300 font-medium">After Transfer, enter TxID or Email for activation:</label>
+                <input type="text" placeholder="Transaction Hash or Email" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <button onclick="alert('Thank you! Your payment proof was submitted. Your API key quota will be updated within minutes.')" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs transition-all">
+                Confirm Payment & Submit
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer -->
     <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
         <p>&copy; 2026 MediaFlow API. Built for high-performance AI systems.</p>
     </footer>
@@ -89,9 +196,19 @@
                 currentApiKey = data.api_key;
                 document.getElementById('keyText').textContent = data.api_key;
                 document.getElementById('keyBox').classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } catch (e) {
                 alert('Failed to generate key');
             }
+        }
+
+        function openPaymentModal(plan, price) {
+            document.getElementById('modalPlanTitle').textContent = `Upgrade to ${plan} (${price})`;
+            document.getElementById('paymentModal').classList.remove('hidden');
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
         }
 
         async function uploadAndOptimize() {
