@@ -1,5 +1,7 @@
 fastapi
 uvicorn
-python-multipart
 pillow
 httpx
+python-multipart
+supabase
+pyTelegramBotAPI
