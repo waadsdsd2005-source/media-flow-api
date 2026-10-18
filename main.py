@@ -1,19 +1,32 @@
 import time
 import asyncio
 import httpx
+import uuid
+import io
+import zipfile
+import os
 from typing import List, Optional
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Header
 from fastapi.responses import Response, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from optimizer import optimize_image_for_ai
-import zipfile
-import io
-import uuid
+from supabase import create_client, Client
+import telebot
+
+# 🔑 قراءة الإعدادات آمنياً من متغيرات البيئة (Render Environment Variables)
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://iicfzhonuanuugaxtwgs.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+ADMIN_CHAT_ID = int(os.getenv("ADMIN_CHAT_ID", "0"))
+
+# إنشاء اتصال قاعدة البيانات فقط إذا تم توفير المفتاح
+supabase: Optional[Client] = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_KEY else None
+bot: Optional[telebot.TeleBot] = telebot.TeleBot(TELEGRAM_BOT_TOKEN, threaded=False) if TELEGRAM_BOT_TOKEN else None
 
 app = FastAPI(
     title="MediaFlow API",
-    description="High-performance middleware with API Key protection.",
-    version="1.3.0"
+    description="High-performance AI Image Optimizer middleware backed by Supabase & Telegram Control.",
+    version="2.0.0"
 )
 
 app.add_middleware(
@@ -24,10 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# قاعدة بيانات مؤقتة لمفاتيح الـ API التجريبية (Demo Keys)
-VALID_API_KEYS = {"mediaflow_demo_12345"}
-
-# 🛡️ نظام منع السبات الذاتي
+# 🛡️ نظام منع السبات الذاتي (Anti-Sleep)
 @app.on_event("startup")
 async def startup_event():
     async def keep_alive():
@@ -40,6 +50,7 @@ async def startup_event():
                 pass
     asyncio.create_task(keep_alive())
 
+# الواجهة الرئيسية (Landing Page)
 @app.get("/", response_class=HTMLResponse)
 def read_root():
     try:
@@ -48,14 +59,56 @@ def read_root():
     except Exception:
         return "<h1>MediaFlow API is Running Online 🚀</h1>"
 
-# 🔑 مسار لتوليد مفتاح API مجاني للمطورين
+# 🔑 1. توليد مفتاح API مجاني جديد وحفظه في Supabase
 @app.post("/v1/generate-key")
 def generate_free_key():
     new_key = f"mf_live_{uuid.uuid4().hex[:16]}"
-    VALID_API_KEYS.add(new_key)
-    return {"api_key": new_key, "limit": "1000 requests/month", "status": "active"}
+    if not supabase:
+        return {"api_key": new_key, "plan": "free", "credits_remaining": 1000, "status": "active_local"}
+    
+    try:
+        data = {
+            "key_value": new_key,
+            "plan_type": "free",
+            "credits_remaining": 1000
+        }
+        supabase.table("api_keys").insert(data).execute()
+        return {
+            "api_key": new_key,
+            "plan": "free",
+            "credits_remaining": 1000,
+            "status": "active"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate key: {str(e)}")
 
-# 1. مسار معالجة صورة فردية (مع التحقق من المفتاح)
+# 🛠️ دالة التحقق من صحة المفتاح وخصم الرصيد من Supabase
+def verify_and_deduct_key(x_api_key: Optional[str], cost: int = 1):
+    if not x_api_key:
+        raise HTTPException(status_code=401, detail="API Key missing. Pass 'x-api-key' in request headers.")
+
+    if not supabase:
+        return {"key_value": x_api_key, "credits_remaining": 1000}
+
+    response = supabase.table("api_keys").select("*").eq("key_value", x_api_key).execute()
+    records = response.data
+
+    if not records or len(records) == 0:
+        raise HTTPException(status_code=401, detail="Invalid API Key.")
+
+    key_info = records[0]
+    remaining = key_info.get("credits_remaining", 0)
+
+    if remaining < cost:
+        raise HTTPException(status_code=402, detail="Quota exceeded. Please upgrade your plan via USDT.")
+
+    # خصم الرصيد وتحديث القاعدة
+    new_balance = remaining - cost
+    supabase.table("api_keys").update({"credits_remaining": new_balance}).eq("key_value", x_api_key).execute()
+    
+    return key_info
+
+# 2. معالجة صورة فردية
 @app.post("/v1/optimize")
 async def optimize_image(
     file: UploadFile = File(...),
@@ -63,21 +116,18 @@ async def optimize_image(
     quality: int = Query(80),
     x_api_key: Optional[str] = Header(None)
 ):
-    # إذا كان الطلب من المتصفح المباشر أو بمفتاح صحيح نمرره
-    if x_api_key and x_api_key not in VALID_API_KEYS:
-        raise HTTPException(status_code=401, detail="Invalid or missing API Key. Get a free key at home page.")
+    verify_and_deduct_key(x_api_key, cost=1)
 
     if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image.")
+        raise HTTPException(status_code=400, detail="Invalid file type. Upload an image.")
 
     start_time = time.time()
-    
     try:
         image_bytes = await file.read()
         if len(image_bytes) == 0:
-            raise HTTPException(status_code=400, detail="Uploaded image is empty.")
+            raise HTTPException(status_code=400, detail="Image is empty.")
         if len(image_bytes) > 25 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="Image file is too large (Max 25MB).")
+            raise HTTPException(status_code=400, detail="Image size exceeds 25MB Limit.")
 
         original_size = len(image_bytes)
         optimized_bytes = optimize_image_for_ai(image_bytes=image_bytes, max_dimension=max_dimension, quality=quality)
@@ -99,9 +149,9 @@ async def optimize_image(
     except HTTPException as he:
         raise he
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Image processing failed safely: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
-# 2. مسار معالجة صور متعددة
+# 3. معالجة الصور الجماعية (Batch Processing)
 @app.post("/v1/optimize-batch")
 async def optimize_multiple_images(
     files: List[UploadFile] = File(...),
@@ -109,11 +159,10 @@ async def optimize_multiple_images(
     quality: int = Query(80),
     x_api_key: Optional[str] = Header(None)
 ):
-    if x_api_key and x_api_key not in VALID_API_KEYS:
-        raise HTTPException(status_code=401, detail="Invalid or missing API Key.")
-
     if len(files) > 10:
         raise HTTPException(status_code=400, detail="Maximum 10 images allowed per batch.")
+
+    verify_and_deduct_key(x_api_key, cost=len(files))
     
     if len(files) == 1:
         return await optimize_image(files[0], max_dimension, quality, x_api_key)
@@ -151,3 +200,44 @@ async def optimize_multiple_images(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Batch processing failed: {str(e)}")
+
+# 🤖 بوت تليجرام المدمج للتحكم الإداري
+if bot:
+    @bot.message_handler(commands=['start', 'stats'])
+    def bot_stats(message):
+        if ADMIN_CHAT_ID and message.chat.id != ADMIN_CHAT_ID:
+            return
+        try:
+            if supabase:
+                res = supabase.table("api_keys").select("*").execute()
+                total = len(res.data)
+                bot.reply_to(message, f"📊 MediaFlow Status:\nActive API Keys in Supabase: {total} ✅")
+            else:
+                bot.reply_to(message, "Supabase connection is not configured.")
+        except Exception as e:
+            bot.reply_to(message, f"Error: {str(e)}")
+
+    @bot.message_handler(commands=['upgrade'])
+    def bot_upgrade(message):
+        if ADMIN_CHAT_ID and message.chat.id != ADMIN_CHAT_ID:
+            return
+        try:
+            args = message.text.split()
+            target_key = args[1]
+            credits = int(args[2])
+            if supabase:
+                supabase.table("api_keys").update({"credits_remaining": credits, "plan_type": "pro"}).eq("key_value", target_key).execute()
+                bot.reply_to(message, f"✅ Key {target_key} upgraded successfully to {credits} credits!")
+            else:
+                bot.reply_to(message, "Supabase is not configured.")
+        except Exception as e:
+            bot.reply_to(message, f"Usage: /upgrade KEY CREDITS\nError: {str(e)}")
+
+    def run_telegram_bot():
+        try:
+            bot.infinity_polling(timeout=10, long_polling_timeout=5)
+        except Exception:
+            pass
+
+    import threading
+    threading.Thread(target=run_telegram_bot, daemon=True).start()
