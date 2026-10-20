@@ -1,10 +1,11 @@
 import os
+import secrets
 import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-app = FastAPI(title="MediaFlow API", version="3.0")
+app = FastAPI(title="MediaFlow API", version="4.0")
 
 # جلب الإعدادات ومتغيرات البيئة من Render
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -22,19 +23,19 @@ def send_telegram_alert(message: str):
             print(f"Failed to send telegram alert: {e}")
 
 class CheckoutRequest(BaseModel):
-    user_id: str
+    api_key: str
     plan: str
     email: str
 
 class FreeTrialRequest(BaseModel):
-    user_id: str
+    email: str
 
 class FeedbackRequest(BaseModel):
-    user_id: str
+    api_key: str
     feedback_type: str
     message: str
 
-# 1. واجهة الموقع الرئيسية المحدثة
+# 1. واجهة الموقع الرئيسية (تصميم نظيف، سهل، ويولد المفتاح بضغطة زر وبدون تعقيد)
 @app.get("/", response_class=HTMLResponse)
 def home():
     return """
@@ -43,7 +44,7 @@ def home():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>MediaFlow API - منصة معالجة الصور الذكية</title>
+        <title>MediaFlow API - معالجة الصور الذكية</title>
         <style>
             * { box-sizing: border-box; }
             body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 20px; text-align: center; }
@@ -69,7 +70,11 @@ def home():
             .btn-free { background: #334155; color: #38bdf8; }
             .btn-free:hover { background: #475569; }
             
-            .feedback-section { margin-top: 60px; background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 30px; text-align: right; max-width: 600px; margin-left: auto; margin-right: auto; }
+            /* صندوق عرض مفتاح الـ API */
+            .key-box { background: #0f172a; border: 1px solid #38bdf8; border-radius: 12px; padding: 20px; margin-top: 30px; text-align: center; display: none; }
+            .key-box input { width: 80%; padding: 10px; background: #1e293b; border: 1px solid #334155; color: #38bdf8; font-family: monospace; text-align: center; border-radius: 6px; font-size: 1.1em; margin-bottom: 10px; }
+            
+            .feedback-section { margin-top: 50px; background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 30px; text-align: right; max-width: 600px; margin-left: auto; margin-right: auto; }
             .feedback-section h3 { color: #38bdf8; margin-top: 0; }
             .form-group { margin-bottom: 15px; }
             .form-group label { display: block; color: #94a3b8; margin-bottom: 5px; font-size: 0.9em; }
@@ -82,20 +87,27 @@ def home():
             <h1>MediaFlow API</h1>
             <p class="subtitle">المنصة الأسرع والأكثر توفيراً للمطورين لمعالجة الصور والبيانات بدقة فائقة</p>
 
+            <!-- صندوق ظهور المفتاح للمطور -->
+            <div id="apiKeyContainer" class="key-box">
+                <p style="color: #facc15; margin-top: 0; font-weight: bold;">🎉 مبروك! تم إنشاء حسابك ومفتاح الـ API الخاص بك بنجاح:</p>
+                <input type="text" id="generatedApiKey" readonly>
+                <button class="btn" style="background: #16a34a; width: 80%; margin: auto;" onclick="copyKey()">نسخ المفتاح واحتفظ به</button>
+            </div>
+
             <div class="pricing-grid">
-                <!-- 1. الباقة المجانية -->
+                <!-- 1. الباقة التجريبية -->
                 <div class="card">
                     <div>
                         <h3>الباقة التجريبية</h3>
                         <div class="price">$0 <span>/ مجاناً</span></div>
                         <ul class="features">
                             <li>500 نقطة تجريبية (20 صورة)</li>
-                            <li>تجربة سرعة السيرفر والربط</li>
-                            <li>تفعيل فوري وبدون بطاقة دفع</li>
-                            <li>تمنح مرة واحدة لكل حساب</li>
+                            <li>توليد مفتاح API فوري</li>
+                            <li>بدون تعقيد أو بطاقة دفع</li>
+                            <li>تمنح مرة واحدة لكل بريد</li>
                         </ul>
                     </div>
-                    <button class="btn btn-free" onclick="getFreeTrial()">ابدأ مجاناً الان</button>
+                    <button class="btn btn-free" onclick="getFreeTrial()">احصل على مفتاحك المجاني</button>
                 </div>
 
                 <!-- 2. الباقة الاحترافية Pro -->
@@ -130,13 +142,13 @@ def home():
                 </div>
             </div>
 
-            <!-- قسم الملاحظات -->
+            <!-- ركن الملاحظات والشكاوي -->
             <div class="feedback-section">
                 <h3>💬 ركن المطورين (الملاحظات والأخطاء)</h3>
-                <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 20px;">واجهتك مشكلة برمجية؟ لديك اقتراح لتطوير الخدمة؟ أرسل لنا وسنستجيب فوراً.</p>
+                <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 20px;">واجهتك مشكلة برمجية؟ أرسل لنا وسنستجيب فوراً.</p>
                 <div class="form-group">
-                    <label>معرف المستخدم (User ID):</label>
-                    <input type="text" id="fbUserId" class="form-control" placeholder="أدخل معرفك في النظام">
+                    <label>مفتاح الـ API الخاص بك:</label>
+                    <input type="text" id="fbApiKey" class="form-control" placeholder="أدخل مفتاح الـ API">
                 </div>
                 <div class="form-group">
                     <label>نوع المشاركة:</label>
@@ -148,7 +160,7 @@ def home():
                 </div>
                 <div class="form-group">
                     <label>تفاصيل الرسالة:</label>
-                    <textarea id="fbMessage" class="form-control" placeholder="اكتب ملاحظتك أو تفاصيل الخطأ هنا..."></textarea>
+                    <textarea id="fbMessage" class="form-control" placeholder="اكتب ملاحظتك هنا..."></textarea>
                 </div>
                 <button class="btn" onclick="sendFeedback()">إرسال للإدارة</button>
             </div>
@@ -156,19 +168,21 @@ def home():
 
         <script>
             async function getFreeTrial() {
-                const userId = prompt("أدخل معرف المستخدم الخاص بك (User ID) لتفعيل التجربة المجانية:");
-                if (!userId) return;
+                const email = prompt("أدخل بريدك الإلكتروني للحصول على مفتاح التجربة المجانية:");
+                if (!email) return;
 
                 try {
                     const response = await fetch('/v1/free-trial', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId })
+                        body: JSON.stringify({ email: email })
                     });
 
                     const data = await response.json();
                     if (data.status === 'success') {
-                        alert("🎉 " + data.message);
+                        document.getElementById('generatedApiKey').value = data.api_key;
+                        document.getElementById('apiKeyContainer').style.display = 'block';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
                     } else {
                         alert("⚠️ " + data.detail);
                     }
@@ -177,12 +191,19 @@ def home():
                 }
             }
 
+            function copyKey() {
+                const keyInput = document.getElementById('generatedApiKey');
+                keyInput.select();
+                document.execCommand('copy');
+                alert("تم نسخ المفتاح بنجاح! احتفظ به في مكان آمن.");
+            }
+
             async function subscribe(plan) {
-                const userId = prompt("أدخل معرف المستخدم الخاص بك (User ID):");
+                const apiKey = prompt("أدخل مفتاح الـ API الخاص بك:");
                 const email = prompt("أدخل بريدك الإلكتروني لإتمام الفاتورة عبر OxaPay:");
                 
-                if (!userId || !email) {
-                    alert("الرجاء إدخال المعرف والبريد الإلكتروني.");
+                if (!apiKey || !email) {
+                    alert("الرجاء إدخال المفتاح والبريد الإلكتروني.");
                     return;
                 }
 
@@ -190,14 +211,14 @@ def home():
                     const response = await fetch('/v1/payments/create-invoice', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId, plan: plan, email: email })
+                        body: JSON.stringify({ api_key: apiKey, plan: plan, email: email })
                     });
 
                     const data = await response.json();
                     if (data.status === 'success' && data.payment_url) {
                         window.location.href = data.payment_url;
                     } else {
-                        alert("حدث خطأ أثناء إنشاء رابط الدفع. حاول مرة أخرى.");
+                        alert("حدث خطأ أثناء إنشاء رابط الدفع.");
                     }
                 } catch (err) {
                     alert("خطأ في الاتصال بالسيرفر: " + err.message);
@@ -205,12 +226,12 @@ def home():
             }
 
             async function sendFeedback() {
-                const userId = document.getElementById('fbUserId').value;
+                const apiKey = document.getElementById('fbApiKey').value;
                 const feedbackType = document.getElementById('fbType').value;
                 const message = document.getElementById('fbMessage').value;
 
-                if (!userId || !message) {
-                    alert("يرجى إدخال معرف المستخدم ونص الرسالة.");
+                if (!apiKey || !message) {
+                    alert("يرجى إدخال مفتاح الـ API ونَص الرسالة.");
                     return;
                 }
 
@@ -218,12 +239,12 @@ def home():
                     const response = await fetch('/v1/feedback', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId, feedback_type: feedbackType, message: message })
+                        body: JSON.stringify({ api_key: apiKey, feedback_type: feedbackType, message: message })
                     });
 
                     const data = await response.json();
                     if (data.status === 'success') {
-                        alert("شكراً لك! تم إرسال ملاحظتك بنجاح إلى فريق الإدارة.");
+                        alert("شكراً لك! تم إرسال ملاحظتك بنجاح.");
                         document.getElementById('fbMessage').value = '';
                     } else {
                         alert("فشل في إرسال الملاحظة.");
@@ -237,7 +258,7 @@ def home():
     </html>
     """
 
-# 2. نقطة تفعيل الباقة المجانية التلقائية
+# 2. توليد مفتاح تجريبي مجاني أوتوماتيكياً بربط البريد الإلكتروني
 @app.post("/v1/free-trial")
 def activate_free_trial(data: FreeTrialRequest):
     supabase_headers = {
@@ -246,32 +267,29 @@ def activate_free_trial(data: FreeTrialRequest):
         "Content-Type": "application/json"
     }
     
-    # فحص الحساب في Supabase
-    get_url = f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{data.user_id}"
+    get_url = f"{SUPABASE_URL}/rest/v1/profiles?email=eq.{data.email}"
     try:
         res = requests.get(get_url, headers=supabase_headers).json()
         
         if res:
-            has_trial = res[0].get("has_used_trial", False)
-            if has_trial:
-                raise HTTPException(status_code=400, detail="لقد استخدمت التجربة المجانية سابقاً لهذا الحساب.")
+            if res[0].get("has_used_trial", False):
+                raise HTTPException(status_code=400, detail="هذا البريد استنفذ التجربة المجانية سابقاً.")
             
-            # منح 500 نقطة تجريبية وتحديث حالة التجربة
+            api_key = res[0].get("api_key")
             current_tokens = res[0].get("tokens", 0)
-            update_url = f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{data.user_id}"
-            payload = {"tokens": current_tokens + 500, "has_used_trial": True}
-            requests.patch(update_url, headers=supabase_headers, json=payload)
+            update_url = f"{SUPABASE_URL}/rest/v1/profiles?email=eq.{data.email}"
+            requests.patch(update_url, headers=supabase_headers, json={"tokens": current_tokens + 500, "has_used_trial": True})
             
-            send_telegram_alert(f"🎁 **تفعيل تجربة مجانية جديدة!**\n- المستخدم: `{data.user_id}`\n- النقاط المضافة: 500 Token")
-            return {"status": "success", "message": "تم تفعيل التجربة المجانية وإضافة 500 نقطة لحسابك بنجاح!"}
+            return {"status": "success", "api_key": api_key, "message": "تم تفعيل التجربة وإضافة 500 نقطة لمفتاحك بنجاح!"}
         else:
-            # إنشاء حساب جديد إذا لم يكن موجوداً بمنحه النقاط
+            # توليد مفتاح API فريد للمطور تلقائياً
+            new_api_key = f"mf_live_{secrets.token_hex(16)}"
             post_url = f"{SUPABASE_URL}/rest/v1/profiles"
-            payload = {"id": data.user_id, "tokens": 500, "has_used_trial": True}
+            payload = {"api_key": new_api_key, "email": data.email, "tokens": 500, "has_used_trial": True}
             requests.post(post_url, headers=supabase_headers, json=payload)
             
-            send_telegram_alert(f"🎁 **تسجيل جديد + تجربة مجانية!**\n- المستخدم: `{data.user_id}`")
-            return {"status": "success", "message": "تم إنشاء حسابك وتفعيل التجربة المجانية بنجاح!"}
+            send_telegram_alert(f"🎁 **مطور جديد حصل على مفتاح تجريبي!**\n- البريد: `{data.email}`\n- المفتاح: `{new_api_key}`")
+            return {"status": "success", "api_key": new_api_key, "message": "تم إنشاء المفتاح وتفعيل 500 نقطة تجريبية بنجاح!"}
             
     except Exception as e:
         if isinstance(e, HTTPException):
@@ -297,7 +315,7 @@ def create_oxapay_invoice(data: CheckoutRequest):
         "currency": "USD",
         "lifeTime": 60,
         "feePaidByPayer": 0,
-        "orderId": f"sub_{data.user_id}_{data.plan}",
+        "orderId": f"sub_{data.api_key}_{data.plan}",
         "desc": selected_plan["title"],
         "email": data.email,
         "callbackUrl": "https://media-flow-api.onrender.com/v1/payments/webhook"
@@ -316,7 +334,7 @@ def create_oxapay_invoice(data: CheckoutRequest):
         send_telegram_alert(f"🚨 استثناء برمجي في الدفع: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# 4. استقبال الـ Webhook وشحن الرصيد تلقائياً
+# 4. استقبال الـ Webhook وشحن الرصيد تلقائياً عبر مفتاح الـ API
 @app.post("/v1/payments/webhook")
 async def oxapay_webhook(request: Request):
     try:
@@ -327,7 +345,7 @@ async def oxapay_webhook(request: Request):
         
         if status == "Complete" or status == 1:
             parts = order_id.split("_")
-            user_id = parts[1]
+            api_key = parts[1]
             plan = parts[2]
             
             tokens_to_add = 10000 if plan == "pro" else 70000
@@ -338,30 +356,30 @@ async def oxapay_webhook(request: Request):
                 "Content-Type": "application/json"
             }
             
-            get_url = f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{user_id}"
+            get_url = f"{SUPABASE_URL}/rest/v1/profiles?api_key=eq.{api_key}"
             res = requests.get(get_url, headers=supabase_headers).json()
             
             if res:
                 current_tokens = res[0].get("tokens", 0)
                 new_tokens = current_tokens + tokens_to_add
                 
-                update_url = f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{user_id}"
+                update_url = f"{SUPABASE_URL}/rest/v1/profiles?api_key=eq.{api_key}"
                 requests.patch(update_url, headers=supabase_headers, json={"tokens": new_tokens})
                 
-                send_telegram_alert(f"💰 **عملية دفع ناجحة وشحن تلقائي!**\n- الباقة: {plan.upper()}\n- المبلغ: ${amount}\n- المستخدم: `{user_id}`\n- الرصيد الجديد: {new_tokens} Token")
+                send_telegram_alert(f"💰 **عملية دفع ناجحة وشحن تلقائي!**\n- الباقة: {plan.upper()}\n- المبلغ: ${amount}\n- المفتاح: `{api_key}`\n- الرصيد الجديد: {new_tokens} Token")
             
         return {"status": "ok"}
     except Exception as e:
         send_telegram_alert(f"🚨 خطأ فادح في الـ Webhook: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# 5. خانة استقبال الملاحظات والأخطاء وإرسالها للتليجرام
+# 5. استقبال الملاحظات والمقترحات والأخطاء
 @app.post("/v1/feedback")
 def receive_feedback(data: FeedbackRequest):
     try:
-        alert_msg = f"📝 **ملاحظة/مشكلة جديدة من مطور:**\n- النوع: {data.feedback_type.upper()}\n- المستخدم: `{data.user_id}`\n- الرسالة: {data.message}"
+        alert_msg = f"📝 **ملاحظة/مشكلة جديدة من مطور:**\n- النوع: {data.feedback_type.upper()}\n- المفتاح: `{data.api_key}`\n- الرسالة: {data.message}"
         send_telegram_alert(alert_msg)
         return {"status": "success", "message": "Feedback received successfully."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-            
+    
