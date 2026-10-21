@@ -3,82 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediaFlow API - معالجة الصور السريعة</title>
+    <title>كواكو ميديا - Kwaku Media API</title>
     <style>
-        body { font-family: Tahoma, sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 20px; text-align: center; }
-        .container { max-width: 900px; margin: auto; padding: 40px 20px; }
-        h1 { color: #38bdf8; margin-bottom: 10px; }
-        p { color: #94a3b8; font-size: 1.1em; }
-        .pricing-grid { display: flex; justify-content: center; gap: 20px; margin-top: 40px; flex-wrap: wrap; }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 30px; width: 280px; text-align: right; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .card h3 { color: #38bdf8; margin-top: 0; }
-        .price { font-size: 1.8em; font-weight: bold; color: #facc15; margin: 15px 0; }
-        .features { list-style: none; padding: 0; margin: 20px 0; color: #cbd5e1; font-size: 0.9em; line-height: 1.6; }
-        .btn { display: block; background: #2563eb; color: white; padding: 12px; text-align: center; border-radius: 6px; text-decoration: none; font-weight: bold; cursor: pointer; border: none; width: 100%; transition: background 0.3s; }
-        .btn:hover { background: #1d4ed8; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 20px; text-align: center; }
+        .container { max-width: 950px; margin: auto; padding: 10px; }
+        
+        /* الهيدر والعنوان */
+        .brand-title { color: #38bdf8; font-size: 2.5em; font-weight: bold; margin-bottom: 5px; text-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+        .subtitle { color: #94a3b8; font-size: 1.1em; margin-bottom: 35px; }
+
+        /* البطاقات العامة */
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; margin-bottom: 30px; text-align: right; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); }
+        .card-header { color: #38bdf8; font-size: 1.3em; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+
+        /* قسم الضغط المباشر (مجاني حتى 10 صور) */
+        .upload-area { border: 2px dashed #38bdf8; border-radius: 12px; padding: 30px; text-align: center; cursor: pointer; background: #0f172a; transition: background 0.3s; margin-bottom: 15px; }
+        .upload-area:hover { background: #1e293b; }
+        
+        /* أزرار وحقول المدخلات */
+        .input-group { margin-bottom: 12px; }
+        .input-group input, .input-group textarea { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; text-align: right; font-size: 1em; }
+        .btn { display: inline-block; background: #2563eb; color: white; padding: 12px 20px; text-align: center; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; width: 100%; font-size: 1em; transition: all 0.3s; }
+        .btn:hover { background: #1d4ed8; transform: translateY(-1px); }
+        .btn-success { background: #059669; }
+        .btn-success:hover { background: #047857; }
+
+        /* شبكة الأسعار والاشتراكات */
+        .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 20px; }
+        .price-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; text-align: right; position: relative; display: flex; flex-direction: column; justify-content: space-between; }
+        .price-card.featured { border-color: #38bdf8; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
+        .badge { position: absolute; top: -12px; left: 20px; background: #38bdf8; color: #0b0f19; font-size: 0.8em; font-weight: bold; padding: 4px 12px; border-radius: 20px; }
+        .price { font-size: 2em; font-weight: bold; color: #facc15; margin: 10px 0; }
+        .features { list-style: none; padding: 0; margin: 15px 0; color: #cbd5e1; font-size: 0.9em; line-height: 1.8; }
+        .features li::before { content: "✓ "; color: #38bdf8; font-weight: bold; }
+
+        /* صندوق إظهار المفتاح النظيف */
+        .key-box { background: #0f172a; border: 1px dashed #38bdf8; padding: 15px; border-radius: 8px; margin-top: 15px; display: none; text-align: center; }
+        .key-text { color: #facc15; font-family: monospace; font-size: 1.1em; word-break: break-all; margin-bottom: 10px; }
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h1>MediaFlow API</h1>
-        <p>الحل الأمثل للمطورين لمعالجة وضغط الصور بسرعة فائقة وتوفير استهلاك الـ Tokens.</p>
+        <!-- الهيدر -->
+        <div class="brand-title">كواكو ميديا | Kwaku Media</div>
+        <p class="subtitle">منصة المطورين الذكية لمعالجة الوسائط والأتمتة الفائقة</p>
 
+        <!-- قسم التجربة المباشرة (ضغط الصور حتى 10 صور مجاناً) -->
+        <div class="card">
+            <h3 class="card-header">⚡ التجربة المباشرة: ضغط الصور مجاناً (حتى 10 صور)</h3>
+            <p style="color: #94a3b8; font-size: 0.9em; margin-bottom: 15px;">جرب كفاءة وسرعة محرك كواكو ميديا بضغط صورك مباشرة ودون الحاجة لمفتاح API:</p>
+            
+            <form id="directCompressForm">
+                <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                    <span style="font-size: 2em;">📁</span>
+                    <p style="margin: 5px 0 0 0; color: #cbd5e1;">اضغط هنا لاختيار صورة من جهازك</p>
+                    <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="updateFileName(this)">
+                    <small id="fileNameDisplay" style="color: #38bdf8; display: block; margin-top: 5px;"></small>
+                </div>
+                <button type="button" class="btn btn-success" onclick="compressImageDirectly()">ضغط الصورة الآن 🚀</button>
+            </form>
+            <div id="compressResult" style="display: none; margin-top: 15px; text-align: center;"></div>
+        </div>
+
+        <!-- لوحة فحص الرصيد والحساب -->
+        <div class="card" style="border-color: #38bdf8;">
+            <h3 class="card-header">🔍 لوحة المطورين: فحص رصيد المفتاح</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="text" id="checkApiKey" style="flex: 1; min-width: 220px; background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #fff; padding: 12px;" placeholder="أدخل مفتاحك (mf_live_...)">
+                <button class="btn" style="width: 150px;" onclick="checkBalance()">فحص الرصيد</button>
+            </div>
+            <div id="balanceResult" style="display: none; background: #0f172a; padding: 12px; border-radius: 8px; margin-top: 12px; color: #38bdf8; text-align: right;"></div>
+        </div>
+
+        <!-- شبكة باقات الاشتراكات -->
         <div class="pricing-grid">
-            <!-- باقة برو -->
-            <div class="card">
-                <h3>الباقة الاحترافية (Pro)</h3>
-                <div class="price">$10</div>
-                <ul class="features">
-                    <li>✔️ 10,000 نقطة (Token)</li>
-                    <li>✔️ معالجة سريعة للصور</li>
-                    <li>✔️ دعم كافة الصيغ</li>
-                    <li>✔️ دعم فني للمطورين</li>
-                </ul>
-                <button class="btn" onclick="subscribe('pro')">اشترك الآن</button>
+            <!-- التجريبية للمطورين -->
+            <div class="price-card">
+                <div>
+                    <h3 style="color:#38bdf8; margin-top:0;">مفتاح تجريبي للمطورين</h3>
+                    <div class="price">$0 <span style="font-size:0.5em; color:#94a3b8;">/ مجاناً</span></div>
+                    <ul class="features">
+                        <li>مفتاح API فريد ومستقل</li>
+                        <li>500 نقطة (Token) جاهزة للربط</li>
+                        <li>ربط مباشر مع البوتات والتطبيقات</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="input-group">
+                        <input type="email" id="freeEmail" placeholder="أدخل بريدك الإلكتروني">
+                    </div>
+                    <button class="btn" style="background:#334155; color:#38bdf8;" onclick="getFreeTrial()">توليد مفتاح API</button>
+                    <div id="generatedKeyBox" class="key-box">
+                        <p style="color:#94a3b8; font-size:0.85em; margin:0 0 5px 0;">مفتاحك الخاص (احتفظ به):</p>
+                        <div id="newKeyText" class="key-text"></div>
+                        <button class="btn btn-success" style="padding: 6px; font-size: 0.9em;" onclick="copyKey()">نسخ المفتاح 📋</button>
+                    </div>
+                </div>
             </div>
 
-            <!-- باقة الأعمال -->
-            <div class="card" style="border-color: #38bdf8;">
-                <h3>باقة الأعمال (Business)</h3>
-                <div class="price">$50</div>
-                <ul class="features">
-                    <li>✔️ 70,000 نقطة (Token)</li>
-                    <li>✔️ أولوية قصوى في السيرفر</li>
-                    <li>✔️ دعم مباشر ومخصص</li>
-                    <li>✔️ توفير عالي للتكاليف</li>
-                </ul>
-                <button class="btn" style="background: #0284c7;" onclick="subscribe('business')">اشترك الآن</button>
+            <!-- باقة Pro -->
+            <div class="price-card featured">
+                <div class="badge">الأكثر طلباً</div>
+                <div>
+                    <h3 style="color:#38bdf8; margin-top:0;">الباقة الاحترافية (Pro)</h3>
+                    <div class="price">$10 <span style="font-size:0.5em; color:#94a3b8;">/ شهرياً</span></div>
+                    <ul class="features">
+                        <li>10,000 نقطة (Token)</li>
+                        <li>شحن تلقائي فور الدفع عبر OxaPay</li>
+                        <li>سرعة معالجة قصوى ودعم متواصل</li>
+                    </ul>
+                </div>
+                <button class="btn" onclick="subscribe('pro')">اشترك وشحن المفتاح</button>
             </div>
+        </div>
+
+        <!-- ركن الدعم الفني والشكاوي (يرسل مباشرة للتليجرام) -->
+        <div class="card" style="margin-top: 30px;">
+            <h3 class="card-header">💬 الدعم الفني وإرسال الملاحظات</h3>
+            <div class="input-group">
+                <input type="text" id="fbKey" placeholder="مفتاح الـ API الخاص بك (إن وجد)">
+            </div>
+            <div class="input-group">
+                <textarea id="fbMsg" style="height: 90px;" placeholder="اكتب ملاحظتك، استفسارك، أو مشكلتك هنا..."></textarea>
+            </div>
+            <button class="btn" style="background: #0284c7;" onclick="sendFeedback()">إرسال الملاحظة للمدير 📩</button>
         </div>
     </div>
 
     <script>
-        async function subscribe(plan) {
-            const userId = prompt("أدخل معرف المستخدم الخاص بك (User ID في النظام):");
-            const email = prompt("أدخل بريدك الإلكتروني لإتمام الفاتورة:");
-            
-            if (!userId || !email) {
-                alert("الرجاء إدخال المعرف والبريد الإلكتروني.");
+        function updateFileName(input) {
+            if(input.files && input.files[0]) {
+                document.getElementById('fileNameDisplay').innerText = "تم اختيار: " + input.files[0].name;
+            }
+        }
+
+        async function compressImageDirectly() {
+            const fileInput = document.getElementById('imageInput');
+            if(!fileInput.files || !fileInput.files[0]) {
+                alert("يرجى اختيار صورة أولاً.");
                 return;
             }
 
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            const resDiv = document.getElementById('compressResult');
+            resDiv.style.display = "block";
+            resDiv.innerHTML = "<span style='color:#facc15;'>جاري ضغط الصورة ومعالجتها... ⏳</span>";
+
             try {
-                const response = await fetch('/v1/payments/create-invoice', {
+                const res = await fetch('/v1/compress-direct', { method: 'POST', body: formData });
+                const data = await res.json();
+                if(res.ok) {
+                    resDiv.innerHTML = `<p style="color:#38bdf8;">✅ تم الضغط بنجاح!</p>
+                    <a href="${data.download_url}" download class="btn btn-success" style="width: auto; padding: 8px 20px;">تحميل الصورة المضغوطة 📥</a>`;
+                } else {
+                    resDiv.innerHTML = `<span style="color:#ef4444;">⚠️ ${data.detail || "حدث خطأ"}</span>`;
+                }
+            } catch(e) {
+                resDiv.innerHTML = `<span style="color:#ef4444;">خطأ شبكة: ${e.message}</span>`;
+            }
+        }
+
+        async function getFreeTrial() {
+            const email = document.getElementById('freeEmail').value.trim();
+            if (!email) { alert("يرجى إدخال البريد الإلكتروني."); return; }
+
+            try {
+                const res = await fetch('/v1/free-trial', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, plan: plan, email: email })
+                    body: JSON.stringify({ email: email })
                 });
-
-                const data = await response.json();
-                if (data.status === 'success' && data.payment_url) {
-                    window.location.href = data.payment_url; // توجيه المطور إلى صفحة الدفع في OxaPay
+                const data = await res.json();
+                if (res.ok) {
+                    document.getElementById('newKeyText').innerText = data.api_key;
+                    document.getElementById('generatedKeyBox').style.display = 'block';
+                    document.getElementById('checkApiKey').value = data.api_key;
+                    checkBalance();
                 } else {
-                    alert("حدث خطأ أثناء إنشاء رابط الدفع. حاول مرة أخرى.");
+                    alert("⚠️ " + (data.detail || "حدث خطأ."));
                 }
-            } catch (err) {
-                alert("خطأ في الاتصال بالسيرفر: " + err.message);
-            }
+            } catch(e) { alert("خطأ اتصال: " + e.message); }
+        }
+
+        function copyKey() {
+            const keyText = document.getElementById('newKeyText').innerText;
+            navigator.clipboard.writeText(keyText);
+            alert("✅ تم نسخ المفتاح بنجاح!");
+        }
+
+        async function checkBalance() {
+            const apiKey = document.getElementById('checkApiKey').value.trim();
+            if (!apiKey) { alert("أدخل مفتاح الـ API أولاً."); return; }
+
+            try {
+                const res = await fetch('/v1/check-balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: apiKey })
+                });
+                const data = await res.json();
+                const box = document.getElementById('balanceResult');
+                box.style.display = 'block';
+                if (res.ok) {
+                    box.innerHTML = "✨ <b>الرصيد المتبقي:</b> " + data.tokens + " Token<br>📧 <b>البريد المرتبط:</b> " + data.email;
+                } else {
+                    box.innerHTML = "<span style='color:#ef4444;'>⚠️ " + (data.detail || "المفتاح غير موجود") + "</span>";
+                }
+            } catch(e) { alert("خطأ اتصال: " + e.message); }
+        }
+
+        async function subscribe(plan) {
+            const apiKey = prompt("أدخل مفتاح الـ API الخاص بك لشحنه:");
+            const email = prompt("أدخل بريدك الإلكتروني للفاتورة:");
+            if (!apiKey || !email) return;
+
+            try {
+                const res = await fetch('/v1/payments/create-invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: apiKey, plan: plan, email: email })
+                });
+                const data = await res.json();
+                if (res.ok && data.payment_url) {
+                    window.location.href = data.payment_url;
+                } else {
+                    alert("خطأ في الدفع: " + (data.detail || "فشل إنشاء الرابط"));
+                }
+            } catch(e) { alert("خطأ اتصال: " + e.message); }
+        }
+
+        async function sendFeedback() {
+            const key = document.getElementById('fbKey').value.trim();
+            const msg = document.getElementById('fbMsg').value.trim();
+            if (!msg) { alert("يرجى كتابة الرسالة أولاً."); return; }
+
+            try {
+                const res = await fetch('/v1/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ api_key: key || "زائر عام", feedback_type: 'general', message: msg })
+                });
+                if (res.ok) { alert("تم إرسال رسالتك إلى مدير كواكو ميديا بنجاح!"); document.getElementById('fbMsg').value = ''; }
+            } catch(e) { alert("خطأ اتصال: " + e.message); }
         }
     </script>
 </body>
