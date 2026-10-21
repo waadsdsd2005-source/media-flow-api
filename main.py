@@ -5,9 +5,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-app = FastAPI(title="MediaFlow API", version="5.0")
+app = FastAPI(title="MediaFlow API", version="5.1")
 
-# جلب متغيرات البيئة من Render
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 OXAPAY_API_KEY = os.getenv("OXAPAY_API_KEY")
@@ -54,10 +53,8 @@ def home():
             h1 { color: #38bdf8; font-size: 2.2em; margin-bottom: 5px; }
             .subtitle { color: #94a3b8; font-size: 1.1em; margin-bottom: 30px; }
             
-            /* لوحة فحص الرصيد والمفتاح */
-            .dash-card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 25px; margin-bottom: 40px; text-align: right; }
+            .dash-card { background: #1e293b; border: 1px solid #38bdf8; border-radius: 16px; padding: 25px; margin-bottom: 40px; text-align: right; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3); }
             .dash-card h3 { color: #38bdf8; margin-top: 0; }
-            .key-display { background: #0f172a; border: 1px solid #334155; padding: 12px; border-radius: 8px; color: #facc15; font-family: monospace; font-size: 1.1em; text-align: center; word-break: break-all; margin: 10px 0; }
             
             .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-top: 20px; }
             .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 30px 20px; text-align: right; display: flex; flex-direction: column; justify-content: space-between; }
@@ -70,7 +67,7 @@ def home():
             
             .input-group { margin-bottom: 12px; }
             .input-group input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #fff; text-align: right; }
-            .btn { display: block; background: #2563eb; color: white; padding: 12px; text-align: center; border-radius: 8px; text-decoration: none; font-weight: bold; cursor: pointer; border: none; width: 100%; font-size: 1em; }
+            .btn { display: block; background: #2563eb; color: white; padding: 12px; text-align: center; border-radius: 8px; text-decoration: none; font-weight: bold; cursor: pointer; border: none; width: 100%; font-size: 1em; transition: background 0.3s; }
             .btn:hover { background: #1d4ed8; }
             
             .feedback-section { margin-top: 50px; background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 30px; text-align: right; max-width: 600px; margin: auto; }
@@ -83,10 +80,10 @@ def home():
 
             <!-- لوحة التحكم وفحص الرصيد -->
             <div class="dash-card">
-                <h3>🔍 لوحة تحكم المطورين (فحص الرصيد والمفتاح)</h3>
-                <p style="color: #94a3b8; font-size: 0.9em;">أدخل مفتاح الـ API الخاص بك لمعرفة رصيدك المتبقي وحالة اشتراكك:</p>
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <input type="text" id="checkApiKey" style="flex: 1; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #fff;" placeholder="أدخل مفتاحك هنا (مثال: mf_live_...)">
+                <h3>🔍 لوحة تحكم المطورين (فحص الرصيد)</h3>
+                <p style="color: #94a3b8; font-size: 0.9em;">أدخل مفتاح الـ API الخاص بك لمعرفة رصيدك المتبقي وحالة حسابك:</p>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                    <input type="text" id="checkApiKey" style="flex: 1; min-width: 220px; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #fff;" placeholder="أدخل مفتاحك (mf_live_...)">
                     <button class="btn" style="width: 150px;" onclick="checkBalance()">فحص الرصيد</button>
                 </div>
                 <div id="balanceResult" style="display: none; background: #0f172a; padding: 15px; border-radius: 8px; margin-top: 10px; border-right: 4px solid #38bdf8;"></div>
@@ -169,7 +166,7 @@ def home():
                     });
                     const data = await res.json();
                     if (res.ok) {
-                        alert("🎉 تم إنشاء مفتاحك المجاني بنجاح:\n\n" + data.api_key + "\n\nاحفظ هذا المفتاح لتستخدمه في تطبيقاتك!");
+                        alert("🎉 تم إنشاء مفتاحك المجاني بنجاح:\n\n" + data.api_key + "\n\nاحتفظ بهذا المفتاح لتستخدمه في تطبيقاتك!");
                         document.getElementById('checkApiKey').value = data.api_key;
                         checkBalance();
                     } else {
@@ -192,7 +189,7 @@ def home():
                     const box = document.getElementById('balanceResult');
                     box.style.display = 'block';
                     if (res.ok) {
-                        box.innerHTML = "✨ <b>الرصيد المتبقي:</b> " + data.tokens + " Token<br>📧 <b>البريد المرتبط:</b> " + data.email;
+                        box.innerHTML = "✨ <b>الرصيد المتبقي:</b> " + data.tokens + " Token<br>📧 <b>البريد المرتبط:</b> " + (data.email || "مفتاح مطور معتمد");
                     } else {
                         box.innerHTML = "<span style='color:#ef4444;'>⚠️ " + (data.detail || "المفتاح غير موجود") + "</span>";
                     }
@@ -243,29 +240,24 @@ def activate_free_trial(data: FreeTrialRequest):
     supabase_headers = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
     }
     
     clean_url = SUPABASE_URL.strip().rstrip('/')
-    get_url = f"{clean_url}/rest/v1/profiles?id=eq.{data.email}"
     
     try:
-        res = requests.get(get_url, headers=supabase_headers)
-        if res.status_code == 200 and res.json():
-            user = res.json()[0]
-            return {"status": "success", "api_key": user.get("id"), "tokens": user.get("tokens")}
-        
-        # إنشاء مفتاح جديد وحفظه
+        # توليد مفتاح API فريد واحترافي للمطور
         new_key = f"mf_live_{secrets.token_hex(8)}"
         post_url = f"{clean_url}/rest/v1/profiles"
-        payload = {"id": new_key, "tokens": 500, "has_used_trial": True}
+        payload = {"id": new_key, "email": data.email, "tokens": 500, "has_used_trial": True}
         
         post_res = requests.post(post_url, headers=supabase_headers, json=payload)
         if post_res.status_code in [200, 201]:
             send_telegram_alert(f"🎁 **مفتاح جديد مولّد تلقائياً!**\n- المفتاح: `{new_key}`\n- البريد: `{data.email}`")
             return {"status": "success", "api_key": new_key, "tokens": 500}
         else:
-            raise HTTPException(status_code=500, detail="فشل إنشاء المفتاح في قاعدة البيانات.")
+            raise HTTPException(status_code=500, detail=f"فشل إنشاء المفتاح: {post_res.text}")
     except Exception as e:
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=500, detail=str(e))
@@ -282,7 +274,7 @@ def check_balance(data: CheckBalanceRequest):
     res = requests.get(get_url, headers=supabase_headers)
     if res.status_code == 200 and res.json():
         user = res.json()[0]
-        return {"tokens": user.get("tokens", 0), "email": "مرتبط بالمفتاح"}
+        return {"tokens": user.get("tokens", 0), "email": user.get("email", "غير متوفر")}
     raise HTTPException(status_code=404, detail="المفتاح غير موجود في النظام.")
 
 @app.post("/v1/payments/create-invoice")
@@ -329,4 +321,4 @@ async def oxapay_webhook(request: Request):
 def receive_feedback(data: FeedbackRequest):
     send_telegram_alert(f"📝 **ملاحظة من مطور:**\n- المفتاح: `{data.api_key}`\n- الرسالة: {data.message}")
     return {"status": "success"}
-    
+                                                   
