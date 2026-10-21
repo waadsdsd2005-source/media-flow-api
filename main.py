@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-app = FastAPI(title="MediaFlow API", version="5.1")
+app = FastAPI(title="MediaFlow API", version="5.2")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -78,10 +78,9 @@ def home():
             <h1>MediaFlow API</h1>
             <p class="subtitle">منصة المطورين لمعالجة الوسائط والأتمتة الذكية</p>
 
-            <!-- لوحة التحكم وفحص الرصيد -->
             <div class="dash-card">
                 <h3>🔍 لوحة تحكم المطورين (فحص الرصيد)</h3>
-                <p style="color: #94a3b8; font-size: 0.9em;">أدخل مفتاح الـ API الخاص بك لمعرفة رصيدك المتبقي وحالة حسابك:</p>
+                <p style="color: #94a3b8; font-size: 0.9em;">أدخل مفتاح الـ API الخاص بك لمعرفة رصيدك المتبقي:</p>
                 <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
                     <input type="text" id="checkApiKey" style="flex: 1; min-width: 220px; padding: 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; color: #fff;" placeholder="أدخل مفتاحك (mf_live_...)">
                     <button class="btn" style="width: 150px;" onclick="checkBalance()">فحص الرصيد</button>
@@ -90,7 +89,6 @@ def home():
             </div>
 
             <div class="pricing-grid">
-                <!-- الباقة المجانية -->
                 <div class="card">
                     <div>
                         <h3 style="color:#38bdf8;">الباقة التجريبية</h3>
@@ -109,7 +107,6 @@ def home():
                     </div>
                 </div>
 
-                <!-- باقة Pro -->
                 <div class="card featured">
                     <div class="badge">الأكثر طلباً</div>
                     <div>
@@ -119,35 +116,31 @@ def home():
                             <li>10,000 نقطة (Token)</li>
                             <li>شحن مباشر لمفتاحك الحالي</li>
                             <li>معالجة فائقة السرعة للصور</li>
-                            <li>دعم فني مخصص للمطورين</li>
                         </ul>
                     </div>
                     <button class="btn" onclick="subscribe('pro')">اشترك وشحن المفتاح</button>
                 </div>
 
-                <!-- باقة Business -->
                 <div class="card">
                     <div>
                         <h3 style="color:#38bdf8;">باقة الأعمال (Business)</h3>
                         <div class="price">$50 <span>/ شهرياً</span></div>
                         <ul class="features">
                             <li>70,000 نقطة (Token)</li>
-                            <li>أولوية قصوى في سيرفرات المعالجة</li>
-                            <li>دعم مباشر للمشاريع الكبيرة</li>
+                            <li>أولوية قصوى في السيرفرات</li>
                         </ul>
                     </div>
                     <button class="btn" style="background: #0284c7;" onclick="subscribe('business')">اشترك وشحن المفتاح</button>
                 </div>
             </div>
 
-            <!-- ركن الملاحظات -->
             <div class="feedback-section">
                 <h3 style="color:#38bdf8;">💬 الدعم الفني والملاحظات</h3>
                 <div class="input-group">
                     <input type="text" id="fbKey" placeholder="مفتاح الـ API الخاص بك">
                 </div>
                 <div class="input-group">
-                    <textarea id="fbMsg" style="width:100%; height:80px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; padding:10px;" placeholder="اكتب ملاحظتك أو مشكلتك..."></textarea>
+                    <textarea id="fbMsg" style="width:100%; height:80px; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#fff; padding:10px;" placeholder="اكتب ملاحظتك..."></textarea>
                 </div>
                 <button class="btn" onclick="sendFeedback()">إرسال للدعم</button>
             </div>
@@ -166,13 +159,13 @@ def home():
                     });
                     const data = await res.json();
                     if (res.ok) {
-                        alert("🎉 تم إنشاء مفتاحك المجاني بنجاح:\n\n" + data.api_key + "\n\nاحتفظ بهذا المفتاح لتستخدمه في تطبيقاتك!");
+                        alert("🎉 تم إنشاء مفتاحك بنجاح:\n\n" + data.api_key);
                         document.getElementById('checkApiKey').value = data.api_key;
                         checkBalance();
                     } else {
-                        alert("⚠️ " + (data.detail || "حدث خطأ."));
+                        alert("⚠️ خطأ من السيرفر: " + (data.detail || JSON.stringify(data)));
                     }
-                } catch(e) { alert("خطأ بالاتصال: " + e.message); }
+                } catch(e) { alert("خطأ شبكة أو اتصال: " + e.message); }
             }
 
             async function checkBalance() {
@@ -189,7 +182,7 @@ def home():
                     const box = document.getElementById('balanceResult');
                     box.style.display = 'block';
                     if (res.ok) {
-                        box.innerHTML = "✨ <b>الرصيد المتبقي:</b> " + data.tokens + " Token<br>📧 <b>البريد المرتبط:</b> " + (data.email || "مفتاح مطور معتمد");
+                        box.innerHTML = "✨ <b>الرصيد المتبقي:</b> " + data.tokens + " Token<br>📧 <b>البريد:</b> " + data.email;
                     } else {
                         box.innerHTML = "<span style='color:#ef4444;'>⚠️ " + (data.detail || "المفتاح غير موجود") + "</span>";
                     }
@@ -197,8 +190,8 @@ def home():
             }
 
             async function subscribe(plan) {
-                const apiKey = prompt("أدخل مفتاح الـ API الخاص بك الذي تريد شحنه:");
-                const email = prompt("أدخل بريدك الإلكتروني لإتمام الفاتورة:");
+                const apiKey = prompt("أدخل مفتاح الـ API الخاص بك:");
+                const email = prompt("أدخل بريدك الإلكتروني للفاتورة:");
                 if (!apiKey || !email) return;
 
                 try {
@@ -211,7 +204,7 @@ def home():
                     if (res.ok && data.payment_url) {
                         window.location.href = data.payment_url;
                     } else {
-                        alert("حدث خطأ أثناء إنشاء رابط الدفع.");
+                        alert("خطأ في الدفع: " + (data.detail || "فشل إنشاء الرابط"));
                     }
                 } catch(e) { alert("خطأ بالاتصال: " + e.message); }
             }
@@ -219,7 +212,7 @@ def home():
             async function sendFeedback() {
                 const key = document.getElementById('fbKey').value.trim();
                 const msg = document.getElementById('fbMsg').value.trim();
-                if (!key || !msg) { alert("يرجى ملء جميع الحقول."); return; }
+                if (!key || !msg) { alert("يرجى ملء الحقول."); return; }
 
                 try {
                     const res = await fetch('/v1/feedback', {
@@ -227,7 +220,7 @@ def home():
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ api_key: key, feedback_type: 'general', message: msg })
                     });
-                    if (res.ok) { alert("تم إرسال رسالتك بنجاح!"); document.getElementById('fbMsg').value = ''; }
+                    if (res.ok) { alert("تم إرسال رسالتك!"); document.getElementById('fbMsg').value = ''; }
                 } catch(e) { alert("خطأ بالاتصال: " + e.message); }
             }
         </script>
@@ -243,21 +236,19 @@ def activate_free_trial(data: FreeTrialRequest):
         "Content-Type": "application/json",
         "Prefer": "return=representation"
     }
-    
     clean_url = SUPABASE_URL.strip().rstrip('/')
     
     try:
-        # توليد مفتاح API فريد واحترافي للمطور
         new_key = f"mf_live_{secrets.token_hex(8)}"
         post_url = f"{clean_url}/rest/v1/profiles"
         payload = {"id": new_key, "email": data.email, "tokens": 500, "has_used_trial": True}
         
         post_res = requests.post(post_url, headers=supabase_headers, json=payload)
         if post_res.status_code in [200, 201]:
-            send_telegram_alert(f"🎁 **مفتاح جديد مولّد تلقائياً!**\n- المفتاح: `{new_key}`\n- البريد: `{data.email}`")
+            send_telegram_alert(f"🎁 **مفتاح جديد مولّد:**\n- المفتاح: `{new_key}`\n- البريد: `{data.email}`")
             return {"status": "success", "api_key": new_key, "tokens": 500}
         else:
-            raise HTTPException(status_code=500, detail=f"فشل إنشاء المفتاح: {post_res.text}")
+            raise HTTPException(status_code=500, detail=f"Supabase Error: {post_res.text}")
     except Exception as e:
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=500, detail=str(e))
@@ -294,7 +285,7 @@ def create_oxapay_invoice(data: CheckoutRequest):
     res = requests.post("https://api.oxapay.com/merchants/request", json=payload).json()
     if res.get("result") == 100:
         return {"status": "success", "payment_url": res.get("payLink")}
-    raise HTTPException(status_code=400, detail="فشل إنشاء رابط الدفع.")
+    raise HTTPException(status_code=400, detail=str(res))
 
 @app.post("/v1/payments/webhook")
 async def oxapay_webhook(request: Request):
@@ -312,13 +303,13 @@ async def oxapay_webhook(request: Request):
             if get_res:
                 curr = get_res[0].get("tokens", 0)
                 requests.patch(f"{clean_url}/rest/v1/profiles?id=eq.{api_key}", headers=headers, json={"tokens": curr + add_tokens})
-                send_telegram_alert(f"💰 **تم الدفع والشحن تلقائياً!**\n- المفتاح: `{api_key}`\n- الرصيد الجديد: {curr + add_tokens}")
+                send_telegram_alert(f"💰 **شحن ناجح عبر الدفع!**\n- المفتاح: `{api_key}`\n- الرصيد الجديد: {curr + add_tokens}")
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
 
 @app.post("/v1/feedback")
 def receive_feedback(data: FeedbackRequest):
-    send_telegram_alert(f"📝 **ملاحظة من مطور:**\n- المفتاح: `{data.api_key}`\n- الرسالة: {data.message}")
+    send_telegram_alert(f"📝 **ملاحظة:**\n- المفتاح: `{data.api_key}`\n- الرسالة: {data.message}")
     return {"status": "success"}
-                                                   
+        
