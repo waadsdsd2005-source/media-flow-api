@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from PIL import Image
 import io
 
-app = FastAPI(title="Kwaku Media API", version="8.0")
+app = FastAPI(title="Kwaku Media API", version="8.5")
 
 # المتغيرات الأساسية
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -30,11 +30,19 @@ def keep_alive():
 
 threading.Thread(target=keep_alive, daemon=True).start()
 
-def send_telegram_alert(message: str):
+# إرسال إشعارات التليجرام مع أزرار تفاعلية للأدمن
+def send_telegram_alert(message: str, reply_markup=None):
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         try:
             url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-            requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"})
+            payload = {
+                "chat_id": TELEGRAM_CHAT_ID,
+                "text": message,
+                "parse_mode": "Markdown"
+            }
+            if reply_markup:
+                payload["reply_markup"] = reply_markup
+            requests.post(url, json=payload)
         except Exception as e:
             print(f"Telegram alert error: {e}")
 
@@ -100,21 +108,48 @@ def download_file(filename: str):
         return FileResponse(path)
     raise HTTPException(status_code=404, detail="الملف غير موجود")
 
+# تفعيل أو استرجاع المفتاح التجريبي (بدون تكرار لنفس الإيميل + أزرار تحكم الأدمن)
 @app.post("/v1/free-trial")
 def activate_free_trial(data: FreeTrialRequest):
     headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
     clean_url = SUPABASE_URL.strip().rstrip('/')
     
     try:
+        # فحص إذا كان الإيميل مسجلاً مسبقاً
+        check_res = requests.get(f"{clean_url}/rest/v1/profiles?email=eq.{data.email}", headers=headers)
+        
+        if check_res.status_code == 200 and check_res.json():
+            existing_user = check_res.json()[0]
+            existing_key = existing_user.get("id")
+            tokens = existing_user.get("tokens", 0)
+            
+            # أزرار تحكم الأدمن لتليجرام
+            admin_keyboard = {
+                "inline_keyboard": [
+                    [{"text": "🔍 فحص المفتاح", "callback_data": f"check_{existing_key}"}],
+                    [{"text": "❌ حظر هذا المستخدم", "callback_data": f"ban_{existing_key}"}]
+                ]
+            }
+            send_telegram_alert(f"🔑 **طلب مفتاح مكرر (مسترجع):**\n- البريد: `{data.email}`\n- المفتاح: `{existing_key}`\n- الرصيد الحالي: `{tokens}`", admin_keyboard)
+            return {"status": "success", "api_key": existing_key, "tokens": tokens, "message": "هذا البريد مسجل مسبقاً، تم إرجاع مفتاحك الحالي."}
+        
+        # إنشاء مفتاح جديد إذا لم يكن موجوداً
         new_key = f"mf_live_{secrets.token_hex(8)}"
         payload = {"id": new_key, "email": data.email, "tokens": 500, "has_used_trial": True}
         
         res = requests.post(f"{clean_url}/rest/v1/profiles", headers=headers, json=payload)
         if res.status_code in [200, 201]:
-            send_telegram_alert(f"🎁 **مفتاح جديد مولّد:**\n- المفتاح: `{new_key}`\n- البريد: `{data.email}`")
-            return {"status": "success", "api_key": new_key, "tokens": 500}
+            admin_keyboard = {
+                "inline_keyboard": [
+                    [{"text": "⚡ ترقية Pro", "url": f"https://t.me/"}],
+                    [{"text": "🗑️ حذف الحساب", "callback_data": f"del_{new_key}"}]
+                ]
+            }
+            send_telegram_alert(f"🎁 **مفتاح تجريبي جديد كلياً:**\n- البريد: `{data.email}`\n- المفتاح: `{new_key}`", admin_keyboard)
+            return {"status": "success", "api_key": new_key, "tokens": 500, "message": "تم إنشاء مفتاح جديد بنجاح."}
         else:
             raise HTTPException(status_code=500, detail=f"خطأ السيرفر: {res.text}")
+            
     except Exception as e:
         if isinstance(e, HTTPException): raise e
         raise HTTPException(status_code=500, detail=str(e))
@@ -151,7 +186,7 @@ def create_oxapay_invoice(data: CheckoutRequest):
         return {"status": "success", "payment_url": res.get("payLink")}
     raise HTTPException(status_code=400, detail="فشل الاتصال ببوابة OxaPay.")
 
-# التأكيد التلقائي وشحن النقاط عبر Webhook
+# التأكيد التلقائي وشحن النقاط عبر Webhook مع أزرار تحكم الأدمن
 @app.post("/v1/payments/webhook")
 async def oxapay_webhook(request: Request):
     try:
@@ -160,7 +195,6 @@ async def oxapay_webhook(request: Request):
             parts = body.get("orderId").split("_")
             api_key, plan = parts[1], parts[2]
             
-            # تحديد النقاط بناءً على الباقة
             add_tokens = 10000 if plan == "pro" else 70000
             
             clean_url = SUPABASE_URL.strip().rstrip('/')
@@ -170,12 +204,24 @@ async def oxapay_webhook(request: Request):
             if get_res:
                 curr = get_res[0].get("tokens", 0)
                 requests.patch(f"{clean_url}/rest/v1/profiles?id=eq.{api_key}", headers=headers, json={"tokens": curr + add_tokens})
-                send_telegram_alert(f"💰 **تم الدفع والشحن تلقائياً!**\n- المفتاح: `{api_key}`\n- الباقة: `{plan}`\n- الرصيد الجديد: {curr + add_tokens}")
+                
+                admin_keyboard = {
+                    "inline_keyboard": [
+                        [{"text": "📊 عرض تفاصيل المفتاح", "callback_data": f"check_{api_key}"}]
+                    ]
+                }
+                send_telegram_alert(f"💰 **تم الدفع والشحن تلقائياً بنجاح!**\n- المفتاح: `{api_key}`\n- الباقة: `{plan.upper()}`\n- الرصيد الجديد: `{curr + add_tokens}` Token", admin_keyboard)
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
 
 @app.post("/v1/feedback")
 def receive_feedback(data: FeedbackRequest):
-    send_telegram_alert(f"📩 **رسالة دعم جديدة:**\n- المفتاح: `{data.api_key}`\n- الرسالة: {data.message}")
+    admin_keyboard = {
+        "inline_keyboard": [
+            [{"text": "✉️ الرد على العميل", "url": f"https://t.me/"}]
+        ]
+    }
+    send_telegram_alert(f"📩 **رسالة دعم فني جديدة:**\n- المفتاح: `{data.api_key}`\n- الرسالة: {data.message}", admin_keyboard)
     return {"status": "success"}
+    
