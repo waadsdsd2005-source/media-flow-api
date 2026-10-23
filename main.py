@@ -3,15 +3,15 @@ import secrets
 import time
 import threading
 import requests
-from fastapi import FastAPI, HTTPException, Request, File, UploadFile
+from fastapi import FastAPI, HTTPException, Request, File, UploadFile, Form
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
 from PIL import Image
 import io
 
-app = FastAPI(title="Kwaku Media API", version="8.5")
+app = FastAPI(title="Kwaku Media API", version="9.0")
 
-# المتغيرات الأساسية
+# System Environment Variables
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 OXAPAY_API_KEY = os.getenv("OXAPAY_API_KEY")
@@ -19,7 +19,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL", "https://media-flow-api.onrender.com")
 
-# نظام منع السبات 24/7
+# Self-Ping Keep Alive Engine (24/7 Service)
 def keep_alive():
     while True:
         time.sleep(600)
@@ -30,7 +30,7 @@ def keep_alive():
 
 threading.Thread(target=keep_alive, daemon=True).start()
 
-# إرسال إشعارات التليجرام مع أزرار تفاعلية للأدمن
+# Telegram Alert System with Admin Action Keyboards
 def send_telegram_alert(message: str, reply_markup=None):
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         try:
@@ -68,9 +68,9 @@ def home():
         with open("index.html", "r", encoding="utf-8") as f:
             return f.read()
     except Exception:
-        return "<h2>منصة كواكو ميديا تعمل بنجاح!</h2>"
+        return "<h2>Kwaku Media API is running successfully!</h2>"
 
-# التجربة المباشرة للضغط
+# Direct Free Compression (Web Interface Preview)
 @app.post("/v1/compress-direct")
 async def compress_direct(file: UploadFile = File(...)):
     try:
@@ -90,7 +90,7 @@ async def compress_direct(file: UploadFile = File(...)):
         
         saved_percent = round(((original_size_kb - compressed_size_kb) / original_size_kb) * 100, 1) if original_size_kb > 0 else 0
         
-        send_telegram_alert(f"⚡ **ضغط مباشر في كواكو ميديا:**\n- الحجم الأصلي: {round(original_size_kb, 1)} KB\n- الحجم بعد الضغط: {round(compressed_size_kb, 1)} KB\n- نسبة التوفير: %{saved_percent}")
+        send_telegram_alert(f"⚡ **Direct Web Compression:**\n- Original Size: {round(original_size_kb, 1)} KB\n- Compressed Size: {round(compressed_size_kb, 1)} KB\n- Savings: {saved_percent}%")
         return {
             "status": "success",
             "original_size": round(original_size_kb, 1),
@@ -99,23 +99,81 @@ async def compress_direct(file: UploadFile = File(...)):
             "download_url": f"/v1/download/{filename}"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"خطأ المعالجة: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Processing Error: {str(e)}")
+
+# API Key Authenticated Compression with Token Deduction
+@app.post("/v1/compress-with-key")
+async def compress_with_key(api_key: str = Form(...), file: UploadFile = File(...)):
+    headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+    clean_url = SUPABASE_URL.strip().rstrip('/')
+    
+    # 1. Verify API Key and check remaining balance in Supabase
+    res = requests.get(f"{clean_url}/rest/v1/profiles?id=eq.{api_key}", headers=headers)
+    if res.status_code != 200 or not res.json():
+        raise HTTPException(status_code=401, detail="Invalid API Key.")
+        
+    user = res.json()[0]
+    current_tokens = user.get("tokens", 0)
+    
+    if current_tokens <= 0:
+        raise HTTPException(status_code=403, detail="Insufficient balance. Please upgrade your subscription plan.")
+        
+    try:
+        contents = await file.read()
+        original_size_kb = len(contents) / 1024
+        
+        image = Image.open(io.BytesIO(contents))
+        if image.mode in ("RGBA", "P"):
+            image = image.convert("RGB")
+            
+        os.makedirs("downloads", exist_ok=True)
+        filename = f"compressed_{secrets.token_hex(4)}.jpg"
+        file_path = os.path.join("downloads", filename)
+        
+        image.save(file_path, "JPEG", optimize=True, quality=60)
+        compressed_size_kb = os.path.getsize(file_path) / 1024
+        saved_percent = round(((original_size_kb - compressed_size_kb) / original_size_kb) * 100, 1) if original_size_kb > 0 else 0
+        
+        # 2. Deduct 1 Token from Supabase Database
+        new_balance = current_tokens - 1
+        patch_headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
+        requests.patch(f"{clean_url}/rest/v1/profiles?id=eq.{api_key}", headers=patch_headers, json={"tokens": new_balance})
+        
+        admin_keyboard = {
+            "inline_keyboard": [
+                [{"text": "🔍 Check Key Balance", "callback_data": f"check_{api_key}"}],
+                [{"text": "❌ Ban User", "callback_data": f"ban_{api_key}"}]
+            ]
+        }
+        send_telegram_alert(f"📉 **API Compression Executed & Token Deducted:**\n- API Key: `{api_key}`\n- Remaining Tokens: `{new_balance}`\n- Saved: {saved_percent}%", admin_keyboard)
+        
+        return {
+            "status": "success",
+            "api_key": api_key,
+            "remaining_tokens": new_balance,
+            "original_size_kb": round(original_size_kb, 1),
+            "compressed_size_kb": round(compressed_size_kb, 1),
+            "saved_percent": saved_percent,
+            "download_url": f"/v1/download/{filename}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing Error: {str(e)}")
 
 @app.get("/v1/download/{filename}")
 def download_file(filename: str):
     path = os.path.join("downloads", filename)
     if os.path.exists(path):
         return FileResponse(path)
-    raise HTTPException(status_code=404, detail="الملف غير موجود")
+    raise HTTPException(status_code=404, detail="File not found")
 
-# تفعيل أو استرجاع المفتاح التجريبي (بدون تكرار لنفس الإيميل + أزرار تحكم الأدمن)
+# Activate or Retrieve Free Trial Key (Duplicate Email Protection)
 @app.post("/v1/free-trial")
 def activate_free_trial(data: FreeTrialRequest):
     headers = {"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}", "Content-Type": "application/json"}
     clean_url = SUPABASE_URL.strip().rstrip('/')
     
     try:
-        # فحص إذا كان الإيميل مسجلاً مسبقاً
+        # Check if email is already registered
         check_res = requests.get(f"{clean_url}/rest/v1/profiles?email=eq.{data.email}", headers=headers)
         
         if check_res.status_code == 200 and check_res.json():
@@ -123,17 +181,16 @@ def activate_free_trial(data: FreeTrialRequest):
             existing_key = existing_user.get("id")
             tokens = existing_user.get("tokens", 0)
             
-            # أزرار تحكم الأدمن لتليجرام
             admin_keyboard = {
                 "inline_keyboard": [
-                    [{"text": "🔍 فحص المفتاح", "callback_data": f"check_{existing_key}"}],
-                    [{"text": "❌ حظر هذا المستخدم", "callback_data": f"ban_{existing_key}"}]
+                    [{"text": "🔍 Inspect Key", "callback_data": f"check_{existing_key}"}],
+                    [{"text": "❌ Ban User", "callback_data": f"ban_{existing_key}"}]
                 ]
             }
-            send_telegram_alert(f"🔑 **طلب مفتاح مكرر (مسترجع):**\n- البريد: `{data.email}`\n- المفتاح: `{existing_key}`\n- الرصيد الحالي: `{tokens}`", admin_keyboard)
-            return {"status": "success", "api_key": existing_key, "tokens": tokens, "message": "هذا البريد مسجل مسبقاً، تم إرجاع مفتاحك الحالي."}
+            send_telegram_alert(f"🔑 **Existing Key Requested:**\n- Email: `{data.email}`\n- Key: `{existing_key}`\n- Balance: `{tokens}` Tokens", admin_keyboard)
+            return {"status": "success", "api_key": existing_key, "tokens": tokens, "message": "Email already registered. Returned your active API key."}
         
-        # إنشاء مفتاح جديد إذا لم يكن موجوداً
+        # Create new trial key
         new_key = f"mf_live_{secrets.token_hex(8)}"
         payload = {"id": new_key, "email": data.email, "tokens": 500, "has_used_trial": True}
         
@@ -141,14 +198,14 @@ def activate_free_trial(data: FreeTrialRequest):
         if res.status_code in [200, 201]:
             admin_keyboard = {
                 "inline_keyboard": [
-                    [{"text": "⚡ ترقية Pro", "url": f"https://t.me/"}],
-                    [{"text": "🗑️ حذف الحساب", "callback_data": f"del_{new_key}"}]
+                    [{"text": "⚡ Upgrade to Pro", "url": "https://t.me/"}],
+                    [{"text": "🗑️ Delete Account", "callback_data": f"del_{new_key}"}]
                 ]
             }
-            send_telegram_alert(f"🎁 **مفتاح تجريبي جديد كلياً:**\n- البريد: `{data.email}`\n- المفتاح: `{new_key}`", admin_keyboard)
-            return {"status": "success", "api_key": new_key, "tokens": 500, "message": "تم إنشاء مفتاح جديد بنجاح."}
+            send_telegram_alert(f"🎁 **New Free Trial Key Generated:**\n- Email: `{data.email}`\n- Key: `{new_key}`", admin_keyboard)
+            return {"status": "success", "api_key": new_key, "tokens": 500, "message": "Free trial API key created successfully."}
         else:
-            raise HTTPException(status_code=500, detail=f"خطأ السيرفر: {res.text}")
+            raise HTTPException(status_code=500, detail=f"Database Error: {res.text}")
             
     except Exception as e:
         if isinstance(e, HTTPException): raise e
@@ -162,15 +219,15 @@ def check_balance(data: CheckBalanceRequest):
     
     if res.status_code == 200 and res.json():
         user = res.json()[0]
-        return {"tokens": user.get("tokens", 0), "email": user.get("email", "غير متوفر")}
-    raise HTTPException(status_code=404, detail="المفتاح غير موجود")
+        return {"tokens": user.get("tokens", 0), "email": user.get("email", "N/A")}
+    raise HTTPException(status_code=404, detail="API Key not found")
 
-# إنشاء روابط الدفع للباقات التنافسية ($10 و $50)
+# OxaPay Invoice Generation ($10 & $50 Plans)
 @app.post("/v1/payments/create-invoice")
 def create_oxapay_invoice(data: CheckoutRequest):
     plans_prices = {"pro": 10, "business": 50}
     if data.plan not in plans_prices:
-        raise HTTPException(status_code=400, detail="الباقة المختارة غير صالحة.")
+        raise HTTPException(status_code=400, detail="Invalid plan selected.")
         
     payload = {
         "merchant": OXAPAY_API_KEY,
@@ -184,9 +241,9 @@ def create_oxapay_invoice(data: CheckoutRequest):
     res = requests.post("https://api.oxapay.com/merchants/request", json=payload).json()
     if res.get("result") == 100:
         return {"status": "success", "payment_url": res.get("payLink")}
-    raise HTTPException(status_code=400, detail="فشل الاتصال ببوابة OxaPay.")
+    raise HTTPException(status_code=400, detail="Failed to connect to OxaPay gateway.")
 
-# التأكيد التلقائي وشحن النقاط عبر Webhook مع أزرار تحكم الأدمن
+# Automatic Top-up Webhook
 @app.post("/v1/payments/webhook")
 async def oxapay_webhook(request: Request):
     try:
@@ -207,10 +264,10 @@ async def oxapay_webhook(request: Request):
                 
                 admin_keyboard = {
                     "inline_keyboard": [
-                        [{"text": "📊 عرض تفاصيل المفتاح", "callback_data": f"check_{api_key}"}]
+                        [{"text": "📊 Inspect Key Details", "callback_data": f"check_{api_key}"}]
                     ]
                 }
-                send_telegram_alert(f"💰 **تم الدفع والشحن تلقائياً بنجاح!**\n- المفتاح: `{api_key}`\n- الباقة: `{plan.upper()}`\n- الرصيد الجديد: `{curr + add_tokens}` Token", admin_keyboard)
+                send_telegram_alert(f"💰 **Payment Confirmed & Account Recharged!**\n- API Key: `{api_key}`\n- Plan: `{plan.upper()}`\n- New Balance: `{curr + add_tokens}` Tokens", admin_keyboard)
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
@@ -219,9 +276,8 @@ async def oxapay_webhook(request: Request):
 def receive_feedback(data: FeedbackRequest):
     admin_keyboard = {
         "inline_keyboard": [
-            [{"text": "✉️ الرد على العميل", "url": f"https://t.me/"}]
+            [{"text": "✉️ Reply to Customer", "url": "https://t.me/"}]
         ]
     }
-    send_telegram_alert(f"📩 **رسالة دعم فني جديدة:**\n- المفتاح: `{data.api_key}`\n- الرسالة: {data.message}", admin_keyboard)
+    send_telegram_alert(f"📩 **New Support Ticket:**\n- Key: `{data.api_key}`\n- Message: {data.message}", admin_keyboard)
     return {"status": "success"}
-    
