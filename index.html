@@ -1,16 +1,24 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>كواكو ميديا | Kwaku Media API</title>
+    <title>Kwaku Media | Developer SaaS API</title>
+    <!-- Google Translate Script -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({pageLanguage: 'en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <style>
         * { box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 20px; text-align: center; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b0f19; color: #f8fafc; margin: 0; padding: 20px; text-align: center; }
         .container { max-width: 1000px; margin: auto; padding: 10px; }
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .brand-title { color: #38bdf8; font-size: 2.8em; font-weight: bold; margin-bottom: 5px; text-shadow: 0 0 20px rgba(56,189,248,0.3); }
         .subtitle { color: #94a3b8; font-size: 1.15em; margin-bottom: 35px; }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; margin-bottom: 30px; text-align: right; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); }
+        .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; margin-bottom: 30px; text-align: left; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); }
         .card-header { color: #38bdf8; font-size: 1.3em; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #334155; padding-bottom: 10px; }
         .upload-area { border: 2px dashed #38bdf8; border-radius: 12px; padding: 35px; text-align: center; cursor: pointer; background: #0f172a; margin-bottom: 15px; transition: 0.3s; }
         .upload-area:hover { background: #172554; border-color: #60a5fa; }
@@ -19,10 +27,10 @@
         .btn-success { background: #059669; }
         .btn-success:hover { background: #047857; }
         .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
-        .price-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; text-align: right; position: relative; display: flex; flex-direction: column; justify-content: space-between; transition: 0.3s; }
+        .price-card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 25px; text-align: left; position: relative; display: flex; flex-direction: column; justify-content: space-between; transition: 0.3s; }
         .price-card:hover { border-color: #38bdf8; transform: translateY(-3px); }
         .price-card.featured { border-color: #38bdf8; background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%); }
-        .badge { position: absolute; top: -12px; left: 20px; background: #38bdf8; color: #0b0f19; font-size: 0.8em; font-weight: bold; padding: 4px 12px; border-radius: 20px; }
+        .badge { position: absolute; top: -12px; right: 20px; background: #38bdf8; color: #0b0f19; font-size: 0.8em; font-weight: bold; padding: 4px 12px; border-radius: 20px; }
         .price { font-size: 2.2em; font-weight: bold; color: #facc15; margin: 10px 0; }
         .features { list-style: none; padding: 0; margin: 15px 0; color: #cbd5e1; font-size: 0.9em; line-height: 1.8; }
         .features li::before { content: "✓ "; color: #38bdf8; font-weight: bold; }
@@ -34,134 +42,150 @@
 </head>
 <body>
     <div class="container">
-        <div class="brand-title">كواكو ميديا | Kwaku Media</div>
-        <p class="subtitle">منصة المطورين الذكية لمعالجة الوسائط والأتمتة الفائقة (24/7)</p>
+        <!-- Language Switcher Bar -->
+        <div class="top-bar">
+            <div style="color: #cbd5e1; font-size: 0.9em;">🌐 Select Language:</div>
+            <div id="google_translate_element"></div>
+        </div>
 
-        <!-- التجربة المباشرة -->
+        <div class="brand-title">Kwaku Media</div>
+        <p class="subtitle">Next-Gen Media Optimization & Automation Engine for Developers (24/7)</p>
+
+        <!-- Image Compression with Key & Deduction -->
         <div class="card">
-            <h3 class="card-header">⚡ التجربة المباشرة: ضغط الصور (حتى 10 صور مجاناً)</h3>
+            <h3 class="card-header">⚡ Live API Test: Image Compression & Token Deduction</h3>
+            <input type="text" id="userApiKey" placeholder="Enter your API Key (e.g., mf_live_...)" value="mf_live_f3eb4bb7e565a59d">
             <div class="upload-area" onclick="document.getElementById('imageInput').click()">
                 <span style="font-size: 2.5em;">📁</span>
-                <p style="margin: 8px 0 0 0; color: #cbd5e1; font-weight: 500;">اضغط هنا لاختيار صورة من هاتفك</p>
+                <p style="margin: 8px 0 0 0; color: #cbd5e1; font-weight: 500;">Click here to select an image from your device</p>
                 <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="updateFileName(this)">
                 <small id="fileNameDisplay" style="color: #38bdf8; display: block; margin-top: 8px; font-weight: bold;"></small>
             </div>
-            <button type="button" class="btn btn-success" onclick="compressImageDirectly()">ضغط الصورة وعرض التقرير الفوري 🚀</button>
-            <div id="compressResult" style="display: none; margin-top: 15px; background: #0f172a; padding: 15px; border-radius: 8px; text-align: right; border: 1px solid #334155;"></div>
+            <button type="button" class="btn btn-success" onclick="compressWithKey()">Compress Image & Deduct Token 🚀</button>
+            <div id="compressResult" style="display: none; margin-top: 15px; background: #0f172a; padding: 15px; border-radius: 8px; text-align: left; border: 1px solid #334155;"></div>
         </div>
 
-        <!-- فحص الرصيد -->
+        <!-- Balance Inspector -->
         <div class="card" style="border-color: #38bdf8;">
-            <h3 class="card-header">🔍 لوحة المطورين: فحص رصيد المفتاح</h3>
+            <h3 class="card-header">🔍 Developer Console: Inspect Key Balance</h3>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="checkApiKey" style="flex: 1; min-width: 220px;" placeholder="أدخل مفتاحك (mf_live_...)">
-                <button class="btn" style="width: 150px; margin-top: 10px;" onclick="checkBalance()">فحص الرصيد</button>
+                <input type="text" id="checkApiKey" style="flex: 1; min-width: 220px;" placeholder="Enter your API Key (mf_live_...)">
+                <button class="btn" style="width: 150px; margin-top: 10px;" onclick="checkBalance()">Check Balance</button>
             </div>
-            <div id="balanceResult" style="display: none; background: #0f172a; padding: 12px; border-radius: 8px; margin-top: 12px; color: #38bdf8; text-align: right; border: 1px solid #334155;"></div>
+            <div id="balanceResult" style="display: none; background: #0f172a; padding: 12px; border-radius: 8px; margin-top: 12px; color: #38bdf8; text-align: left; border: 1px solid #334155;"></div>
         </div>
 
-        <!-- شبكة الباقات الثلاث -->
+        <!-- Pricing Grid -->
         <div class="pricing-grid">
-            <!-- التجريبية -->
+            <!-- Free Trial -->
             <div class="price-card">
                 <div>
-                    <h3 style="color:#38bdf8; margin-top:0;">مفتاح تجريبي</h3>
-                    <div class="price">$0 <span style="font-size:0.5em; color:#94a3b8;">/ مجاناً</span></div>
+                    <h3 style="color:#38bdf8; margin-top:0;">Free Trial</h3>
+                    <div class="price">$0 <span style="font-size:0.5em; color:#94a3b8;">/ free</span></div>
                     <ul class="features">
-                        <li>مفتاح API خاص فريد</li>
-                        <li>500 نقطة (Token) مجانية</li>
-                        <li>لا يتكرر المفتاح لنفس الإيميل</li>
+                        <li>Unique API Key</li>
+                        <li>500 Free Tokens</li>
+                        <li>Duplicate Email Protection</li>
                     </ul>
                 </div>
                 <div>
-                    <input type="email" id="freeEmail" placeholder="أدخل بريدك الإلكتروني">
-                    <button class="btn" style="background:#334155; color:#38bdf8;" onclick="getFreeTrial()">توليد أو استرجاع المفتاح</button>
+                    <input type="email" id="freeEmail" placeholder="Enter your email address">
+                    <button class="btn" style="background:#334155; color:#38bdf8;" onclick="getFreeTrial()">Generate / Retrieve Key</button>
                     <div id="generatedKeyBox" class="key-box">
                         <div id="newKeyText" class="key-text"></div>
-                        <button class="btn btn-success" style="padding: 6px; font-size: 0.9em;" onclick="copyKey()">نسخ المفتاح 📋</button>
+                        <button class="btn btn-success" style="padding: 6px; font-size: 0.9em;" onclick="copyKey()">Copy Key 📋</button>
                     </div>
                 </div>
             </div>
 
-            <!-- باقة Pro -->
+            <!-- Pro Plan -->
             <div class="price-card featured">
-                <div class="badge">الأكثر طلباً</div>
+                <div class="badge">Most Popular</div>
                 <div>
-                    <h3 style="color:#38bdf8; margin-top:0;">الباقة الاحترافية (Pro)</h3>
-                    <div class="price">$10 <span style="font-size:0.5em; color:#94a3b8;">/ شهرياً</span></div>
+                    <h3 style="color:#38bdf8; margin-top:0;">Pro Plan</h3>
+                    <div class="price">$10 <span style="font-size:0.5em; color:#94a3b8;">/ month</span></div>
                     <ul class="features">
-                        <li>10,000 نقطة (Token)</li>
-                        <li>شحن أوتوماتيكي فور الدفع عبر OxaPay</li>
-                        <li>سرعة معالجة فائقة</li>
+                        <li>10,000 Tokens</li>
+                        <li>Instant Recharging via OxaPay</li>
+                        <li>High Priority Processing</li>
                     </ul>
                 </div>
-                <button class="btn" onclick="subscribe('pro')">اشترك وشحن المفتاح 🚀</button>
+                <button class="btn" onclick="subscribe('pro')">Subscribe & Recharge 🚀</button>
             </div>
 
-            <!-- باقة Business -->
+            <!-- Business Plan -->
             <div class="price-card">
                 <div>
-                    <h3 style="color:#38bdf8; margin-top:0;">باقة الأعمال (Business)</h3>
-                    <div class="price">$50 <span style="font-size:0.5em; color:#94a3b8;">/ شهرياً</span></div>
+                    <h3 style="color:#38bdf8; margin-top:0;">Business Plan</h3>
+                    <div class="price">$50 <span style="font-size:0.5em; color:#94a3b8;">/ month</span></div>
                     <ul class="features">
-                        <li>70,000 نقطة (Token)</li>
-                        <li>أعلى أولوية معالجة بالسيرفر</li>
-                        <li>دعم فني خاص للمشاريع الكبرى</li>
+                        <li>70,000 Tokens</li>
+                        <li>Dedicated Server Queue</li>
+                        <li>Priority Technical Support</li>
                     </ul>
                 </div>
-                <button class="btn" style="background: #0284c7;" onclick="subscribe('business')">اشترك وشحن المفتاح 💼</button>
+                <button class="btn" style="background: #0284c7;" onclick="subscribe('business')">Subscribe & Recharge 💼</button>
             </div>
         </div>
 
-        <!-- الدعم الفني -->
+        <!-- Support Ticket System -->
         <div class="card" style="margin-top: 30px;">
-            <h3 class="card-header">💬 الدعم الفني وإرسال الشكاوي</h3>
-            <input type="text" id="fbKey" placeholder="مفتاح الـ API الخاص بك (اختياري)">
-            <textarea id="fbMsg" style="height: 80px;" placeholder="اكتب استفسارك أو مشكلتك..."></textarea>
-            <button class="btn" style="background:#0284c7; margin-top:10px;" onclick="sendFeedback()">إرسال الرسالة للإدارة 📩</button>
+            <h3 class="card-header">💬 Developer Support & Feedback</h3>
+            <input type="text" id="fbKey" placeholder="Your API Key (Optional)">
+            <textarea id="fbMsg" style="height: 80px;" placeholder="Describe your inquiry or issue..."></textarea>
+            <button class="btn" style="background:#0284c7; margin-top:10px;" onclick="sendFeedback()">Send Ticket 📩</button>
         </div>
     </div>
 
     <script>
         function updateFileName(input) {
             if(input.files && input.files[0]) {
-                document.getElementById('fileNameDisplay').innerText = "تم اختيار: " + input.files[0].name;
+                document.getElementById('fileNameDisplay').innerText = "Selected: " + input.files[0].name;
             }
         }
 
-        async function compressImageDirectly() {
+        async function compressWithKey() {
+            const apiKey = document.getElementById('userApiKey').value.trim();
             const fileInput = document.getElementById('imageInput');
-            if(!fileInput.files || !fileInput.files[0]) { alert("اختر صورة أولاً من جهازك."); return; }
+            if(!apiKey) { alert("Please enter your API key first."); return; }
+            if(!fileInput.files || !fileInput.files[0]) { alert("Please select an image first."); return; }
 
             const formData = new FormData();
+            formData.append("api_key", apiKey);
             formData.append("file", fileInput.files[0]);
+
             const resDiv = document.getElementById('compressResult');
             resDiv.style.display = "block";
-            resDiv.innerHTML = "<span style='color:#facc15;'>جاري ضغط الصورة ومعالجة التقرير بدقة... ⏳</span>";
+            resDiv.innerHTML = "<span style='color:#facc15;'>Compressing image & deducting token... ⏳</span>";
 
             try {
-                const res = await fetch('/v1/compress-direct', { method: 'POST', body: formData });
+                const res = await fetch('/v1/compress-with-key', { method: 'POST', body: formData });
                 const data = await res.json();
                 if(res.ok) {
                     resDiv.innerHTML = `
-                        <p style="color:#38bdf8; margin:0 0 8px 0;"><b>📊 تقرير معالجة الصورة:</b></p>
-                        <p style="color:#cbd5e1; margin:4px 0;">• الحجم الأصلي: <b>${data.original_size} KB</b></p>
-                        <p style="color:#cbd5e1; margin:4px 0;">• الحجم بعد الضغط: <b style="color:#4ade80;">${data.compressed_size} KB</b></p>
-                        <p style="color:#facc15; margin:4px 0;">• نسبة التوفير: <b>%${data.saved_percent}</b></p>
-                        <a href="${data.download_url}" download class="btn btn-success" style="margin-top:10px; padding: 10px;">تحميل الصورة المضغوطة 📥</a>
+                        <p style="color:#38bdf8; margin:0 0 8px 0;"><b>📊 Compression Report:</b></p>
+                        <p style="color:#cbd5e1; margin:4px 0;">• Original Size: <b>${data.original_size_kb} KB</b></p>
+                        <p style="color:#cbd5e1; margin:4px 0;">• Compressed Size: <b style="color:#4ade80;">${data.compressed_size_kb} KB</b></p>
+                        <p style="color:#facc15; margin:4px 0;">• Savings: <b>${data.saved_percent}%</b></p>
+                        <p style="color:#38bdf8; margin:4px 0;">• Remaining Balance: <b style="color:#facc15;">${data.remaining_tokens} Tokens</b></p>
+                        <a href="${data.download_url}" download class="btn btn-success" style="margin-top:10px; padding: 10px;">Download Compressed Image 📥</a>
                     `;
+                    // Automatically update balance inspector box
+                    document.getElementById('checkApiKey').value = apiKey;
+                    checkBalance();
                 } else { resDiv.innerHTML = `<span style="color:#ef4444;">⚠️ ${data.detail}</span>`; }
-            } catch(e) { resDiv.innerHTML = `<span style="color:#ef4444;">خطأ في الاتصال بالشبكة: ${e.message}</span>`; }
+            } catch(e) { resDiv.innerHTML = `<span style="color:#ef4444;">Network Error: ${e.message}</span>`; }
         }
 
         async function getFreeTrial() {
             const email = document.getElementById('freeEmail').value.trim();
-            if (!email) { alert("أدخل البريد الإلكتروني أولاً."); return; }
+            if (!email) { alert("Please enter your email."); return; }
             const res = await fetch('/v1/free-trial', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email}) });
             const data = await res.json();
             if(res.ok) {
                 document.getElementById('newKeyText').innerText = data.api_key;
                 document.getElementById('generatedKeyBox').style.display = 'block';
+                document.getElementById('userApiKey').value = data.api_key;
                 document.getElementById('checkApiKey').value = data.api_key;
                 alert(data.message);
                 checkBalance();
@@ -170,38 +194,38 @@
 
         function copyKey() {
             navigator.clipboard.writeText(document.getElementById('newKeyText').innerText);
-            alert("تم نسخ المفتاح بنجاح! 📋");
+            alert("API Key copied to clipboard! 📋");
         }
 
         async function checkBalance() {
             const apiKey = document.getElementById('checkApiKey').value.trim();
-            if (!apiKey) { alert("أدخل المفتاح أولاً."); return; }
+            if (!apiKey) { alert("Please enter your API Key."); return; }
             const res = await fetch('/v1/check-balance', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({api_key: apiKey}) });
             const data = await res.json();
             const box = document.getElementById('balanceResult');
             box.style.display = 'block';
-            if(res.ok) { box.innerHTML = `✨ <b>الرصيد المتبقي:</b> ${data.tokens} Token | 📧 <b>البريد المرتبط:</b> ${data.email}`; }
-            else { box.innerHTML = "<span style='color:#ef4444;'>⚠️ المفتاح غير موجود أو غير صالح.</span>"; }
+            if(res.ok) { box.innerHTML = `✨ <b>Remaining Balance:</b> ${data.tokens} Tokens | 📧 <b>Email:</b> ${data.email}`; }
+            else { box.innerHTML = "<span style='color:#ef4444;'>⚠️ Invalid or non-existent API Key.</span>"; }
         }
 
         async function subscribe(plan) {
-            const apiKey = prompt("أدخل مفتاح الـ API الخاص بك لشحنه:");
-            const email = prompt("أدخل بريدك الإلكتروني للفاتورة:");
+            const apiKey = prompt("Enter your API Key to recharge:");
+            const email = prompt("Enter your billing email:");
             if (!apiKey || !email) return;
 
             const res = await fetch('/v1/payments/create-invoice', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({api_key: apiKey, plan, email}) });
             const data = await res.json();
             if(res.ok && data.payment_url) { window.location.href = data.payment_url; }
-            else { alert("فشل إنشاء رابط الدفع عبر OxaPay."); }
+            else { alert("Failed to create OxaPay invoice."); }
         }
 
         async function sendFeedback() {
             const key = document.getElementById('fbKey').value.trim();
             const msg = document.getElementById('fbMsg').value.trim();
-            if(!msg) { alert("اكتب رسالتك أولاً."); return; }
+            if(!msg) { alert("Please enter your message."); return; }
 
-            const res = await fetch('/v1/feedback', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({api_key: key || "زائر عام", feedback_type: 'general', message: msg}) });
-            if(res.ok) { alert("تم إرسال رسالتك إلى إدارة كواكو ميديا بنجاح! 📩"); document.getElementById('fbMsg').value = ''; }
+            const res = await fetch('/v1/feedback', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({api_key: key || "Guest", feedback_type: 'general', message: msg}) });
+            if(res.ok) { alert("Support ticket submitted successfully! 📩"); document.getElementById('fbMsg').value = ''; }
         }
     </script>
 </body>
